@@ -1,6 +1,7 @@
 require('dotenv').config()
 const express = require('express')
 const users = require('./routes/users')
+const company = require('./routes/company')
 const mongoose = require('mongoose')
 const session = require('express-session')
 const passport = require('passport')
@@ -36,6 +37,7 @@ mongoose.connect(process.env.MONGODB_DB_URI, { useNewUrlParser: true, useUnified
   })
 
 app.use('/users', users)
+app.use('/company', company)
 
 app.listen(PORT, () => {
   console.log('Server Started on port', PORT)
