@@ -30,6 +30,50 @@ router.get('/dashboard', ensureAuthenthicated, (req, res) => {
   })
 })
 
+router.get('/profile', ensureAuthenthicated, (req, res) => {
+  return res.status(400).json({
+    name: req.user.name,
+    email: req.user.email,
+    phoneNo: req.user.phoneNo,
+    resumeLink: req.user.resumeLink
+  })
+})
+
+router.patch('/update',ensureAuthenthicated,(req,res)=>{
+  if (!req.body.name || !req.body.resumeLink || !req.body.phoneNo) {
+    return res.status(400).json({
+      erroMessage: 'missing required parameters. refer documentation'
+    })
+  }
+
+  User.findOne({email: req.user.email})
+    .then((user)=>{
+      if(!user)
+      {
+          return res.status(400).json({
+            erroMessage: 'user doesnt exists. please login'
+          })
+      }
+      else
+      {
+          User.updateOne({ email: req.user.email },
+            { $set: { name: req.body.name, resumeLink: req.body.resumeLink, phoneNo: req.body.phoneNo } })
+            .then((update) => {
+              res.status(200).json({
+                message: 'details updated in db'
+              })
+            })
+            .catch((err) => {
+              console.log('Error:', err)
+            })
+      }
+    })
+    .catch((err) => {
+      console.log('Error:', err)
+    })
+
+})
+
 router.get('/logout', (req, res) => {
   req.logout()
   return res.status(200).json({
@@ -38,7 +82,7 @@ router.get('/logout', (req, res) => {
 })
 
 router.post('/register', (req, res) => {
-  if (!req.body.name || !req.body.resumeLink || !req.body.email || !req.body.password || !req.body.phoneNo) {
+  if (!req.body.name || !req.body.email || !req.body.password || !req.body.phoneNo) {
     return res.status(400).json({
       erroMessage: 'missing required parameters. refer documentation'
     })

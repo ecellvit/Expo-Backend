@@ -21,7 +21,10 @@ const userSchema = new Schema({
   },
   resumeLink: {
     type: String,
-    required: true
+  },
+  approvalStatus:{
+    type: Boolean,
+    default: false
   }
 })
 
