@@ -2,10 +2,11 @@ const router = require('express').Router()
 const bcrypt = require('bcryptjs')
 const passport = require('passport')
 const { ensureAuthenthicated } = require('../config/auth')
+const recaptcha = require('../config/recaptchaVerification')
 
 const User = require('../models/User')
 
-router.post('/login', (req, res, next) => {
+router.post('/login',recaptcha, (req, res, next) => {
   passport.authenticate('local', {
     successRedirect: '/users/success',
     failureRedirect: '/users/failure'
