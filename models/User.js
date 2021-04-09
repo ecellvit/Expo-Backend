@@ -2,6 +2,25 @@ const mongoose = require('mongoose')
 
 const Schema = mongoose.Schema
 
+const bookSchema = new Schema({
+  companyId:{
+      type: String,
+      required: true
+  },
+  companyName:{
+      type: String,
+      required: true
+  },
+  slotId:{
+    type: String,
+    required: true
+  },
+  startTime:{
+    type: String,
+    required: true
+  }  
+})
+
 const userSchema = new Schema({
   name: {
     type: String,
@@ -25,7 +44,8 @@ const userSchema = new Schema({
   approvalStatus:{
     type: Boolean,
     default: false
-  }
+  },
+  booked:[bookSchema]
 })
 
 const User = mongoose.model('InternExpoUser', userSchema)
