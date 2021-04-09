@@ -39,6 +39,13 @@ mongoose.connect(process.env.MONGODB_DB_URI, { useNewUrlParser: true, useUnified
 app.use('/users', users)
 app.use('/company', company)
 
+app.get('/',(req,res)=>{
+  res.status(200).json({
+    document: "expo",
+    message: "refer docs"
+  })
+})
+
 app.listen(PORT, () => {
   console.log('Server Started on port', PORT)
 })
