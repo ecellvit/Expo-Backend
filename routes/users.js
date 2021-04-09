@@ -8,7 +8,7 @@ const User = require('../models/User')
 const Company = require('../models/Company')
 
 //@TODO Add recaptcha middleware
-router.post('/login', (req, res, next) => {
+router.post('/login', recaptcha, (req, res, next) => {
   passport.authenticate('local', {
     successRedirect: '/users/success',
     failureRedirect: '/users/failure'
