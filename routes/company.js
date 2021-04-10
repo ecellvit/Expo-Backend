@@ -129,7 +129,7 @@ router.post('/addSlot', ensureAuthenthicated, (req, res) => {
             startTime: req.body.startTime,
             endTime: req.body.endTime,
             bookedBy: [],
-            available: req.body.available,
+            available: req.body.total,
             total: req.body.total
           }
 
@@ -280,15 +280,31 @@ router.delete('/deleteCompany', ensureAuthenthicated, (req, res) => {
 
 router.post('/uploadCSV', ensureAuthenthicated, upload.single('file'), (req, res) => {
   if (req.user._id.equals(process.env.ADMIN)) {
+    var companies = []
     fs.createReadStream('./uploads/expoTest.csv')
       .pipe(csv())
       .on('data', (row) => {
-        console.log(row)
+        var data1 = {}
+        data1.name = row.name
+        data1.description = row.description
+        data1.tags = row.tags.split(',')
+        data1.workFrom = row.workFrom
+        companies.push(data1)
       })
       .on('end', () => {
-        console.log('CSV file successfully processed')
+        Company.insertMany(companies)
+          .then(()=>{
+            return res.status(200).json({
+              message: 'success added all companies'
+            })  
+          })
+          .catch((error)=>{
+            console.log(error) 
+            return res.status(400).json({
+              erroMessage: error
+            })     
+        })
       })
-    res.status(200).json({ status: 'OK' })
   } else {
     return res.status(400).json({
       erroMessage: 'unauthorized access request'
