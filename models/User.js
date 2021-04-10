@@ -3,22 +3,22 @@ const mongoose = require('mongoose')
 const Schema = mongoose.Schema
 
 const bookSchema = new Schema({
-  companyId:{
-      type: String,
-      required: true
-  },
-  companyName:{
-      type: String,
-      required: true
-  },
-  slotId:{
+  companyId: {
     type: String,
     required: true
   },
-  startTime:{
+  companyName: {
     type: String,
     required: true
-  }  
+  },
+  slotId: {
+    type: String,
+    required: true
+  },
+  startTime: {
+    type: String,
+    required: true
+  }
 })
 
 const userSchema = new Schema({
@@ -39,13 +39,13 @@ const userSchema = new Schema({
     required: true
   },
   resumeLink: {
-    type: String,
+    type: String
   },
-  approvalStatus:{
+  approvalStatus: {
     type: Boolean,
     default: false
   },
-  booked:[bookSchema]
+  booked: [bookSchema]
 })
 
 const User = mongoose.model('InternExpoUser', userSchema)

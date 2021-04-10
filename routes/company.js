@@ -3,59 +3,68 @@ const { ensureAuthenthicated } = require('../config/auth')
 
 const Company = require('../models/Company')
 
-//@Todo Allow only admin
 router.post('/add', ensureAuthenthicated, (req,res)=>{
-    if (!req.body.name || !req.body.description || !req.body.startTime || !req.body.endTime) {
-        return res.status(400).json({
-          erroMessage: 'missing required parameters. refer documentation'
-        })
-      }
-    
-    Company.findOne({ name: req.body.name })
-      .then((company)=>{
-        if (company) {
+  if(req.user._id.equals(process.env.ADMIN))
+  {
+        if (!req.body.name || !req.body.description || !req.body.startTime || !req.body.endTime) {
             return res.status(400).json({
-              erroMessage: 'company already exists. please update'
+              erroMessage: 'missing required parameters. refer documentation'
             })
-        }
-        else{
-            const name = req.body.name
-            const description = req.body.description
-            const tags = req.body.tags
-
-            const newCompany = new Company({
-                name,
-                description,
-                tags
-              })
-            
-            const slotData = {
-                startTime: req.body.startTime,
-                endTime: req.body.endTime,
-                bookedBy:[],
-                available: req.body.available,
-                total: req.body.total
-            }
-
-            newCompany.slots = [slotData]
-
-            newCompany.save()
-              .then((company) => {
-                return res.status(200).json({
-                  message: 'success'
-                })
-              })
-              .catch((err) => {
+          }
+        
+        Company.findOne({ name: req.body.name })
+          .then((company)=>{
+            if (company) {
                 return res.status(400).json({
-                  erroMessage: err
+                  erroMessage: 'company already exists. please update'
                 })
-              })
+            }
+            else{
+                const name = req.body.name
+                const description = req.body.description
+                const tags = req.body.tags
 
-        }
-      })
-      .catch((err) => {
-        console.log('Error:', err)
-      })
+                const newCompany = new Company({
+                    name,
+                    description,
+                    tags
+                  })
+                
+                const slotData = {
+                    startTime: req.body.startTime,
+                    endTime: req.body.endTime,
+                    bookedBy:[],
+                    available: req.body.available,
+                    total: req.body.total
+                }
+
+                newCompany.slots = [slotData]
+
+                newCompany.save()
+                  .then((company) => {
+                    return res.status(200).json({
+                      message: 'success'
+                    })
+                  })
+                  .catch((err) => {
+                    return res.status(400).json({
+                      erroMessage: err
+                    })
+                  })
+
+            }
+          })
+          .catch((err) => {
+            console.log('Error:', err)
+          })
+  }
+  else
+  {
+    return res.status(400).json({
+      erroMessage: 'unauthorized access request'
+    })
+  }
+
 })
 
 router.get('/getAll',ensureAuthenthicated,(req,res)=>{
@@ -90,52 +99,64 @@ router.post('/getData',ensureAuthenthicated,(req,res)=>{
 })
 
 router.post('/addSlot', ensureAuthenthicated, (req,res)=>{
-    if (!req.body.name || !req.body.startTime || !req.body.endTime) {
-        return res.status(400).json({
-          erroMessage: 'missing required parameters. refer documentation'
-        })
-    }
-    
-    Company.findOne({ name: req.body.name })
-      .then((company)=>{
-        if (!company) {
+  if(req.user._id.equals(process.env.ADMIN))
+  {
+        if (!req.body.name || !req.body.startTime || !req.body.endTime) {
             return res.status(400).json({
-              erroMessage: 'company does not exist'
+              erroMessage: 'missing required parameters. refer documentation'
             })
         }
-        else{
-
-            const slots = company.slots
-            
-            const slotData = {
-                startTime: req.body.startTime,
-                endTime: req.body.endTime,
-                bookedBy:[],
-                available: req.body.available,
-                total: req.body.total
+        
+        Company.findOne({ name: req.body.name })
+          .then((company)=>{
+            if (!company) {
+                return res.status(400).json({
+                  erroMessage: 'company does not exist'
+                })
             }
+            else{
 
-            slots.push(slotData)
+                const slots = company.slots
+                
+                const slotData = {
+                    startTime: req.body.startTime,
+                    endTime: req.body.endTime,
+                    bookedBy:[],
+                    available: req.body.available,
+                    total: req.body.total
+                }
 
-            Company.updateOne({ name: req.body.name },
-                { $set: { slots: slots} })
-                .then((update) => {
-                  res.status(200).json({
-                    message: 'details updated in db'
-                  })
-                })
-                .catch((err) => {
-                  console.log('Error:', err)
-                })
+                slots.push(slotData)
 
-        }
-      })
-      .catch((err) => {
-        console.log('Error:', err)
-      })
+                Company.updateOne({ name: req.body.name },
+                    { $set: { slots: slots} })
+                    .then((update) => {
+                      res.status(200).json({
+                        message: 'details updated in db'
+                      })
+                    })
+                    .catch((err) => {
+                      console.log('Error:', err)
+                    })
+
+            }
+          })
+          .catch((err) => {
+            console.log('Error:', err)
+          })
+  }
+  else
+  {
+    return res.status(400).json({
+      erroMessage: 'unauthorized access request'
+    })
+  }
+    
 })
 
 router.patch('/updateSlot', ensureAuthenthicated, (req,res)=>{
+  if(req.user._id.equals(process.env.ADMIN))
+  {
     if (!req.body.name || !req.body.id || !req.body.startTime || !req.body.endTime ) {
         return res.status(400).json({
           erroMessage: 'missing required parameters. refer documentation'
@@ -184,9 +205,18 @@ router.patch('/updateSlot', ensureAuthenthicated, (req,res)=>{
       .catch((err) => {
         console.log('Error:', err)
       })
+    }
+    else
+    {
+      return res.status(400).json({
+        erroMessage: 'unauthorized access request'
+      })
+    }
 })
 
 router.delete('/deleteSlot', ensureAuthenthicated, (req,res)=>{
+  if(req.user._id.equals(process.env.ADMIN))
+  {
     if (!req.body.name || !req.body.id ) {
         return res.status(400).json({
           erroMessage: 'missing required parameters. refer documentation'
@@ -226,9 +256,19 @@ router.delete('/deleteSlot', ensureAuthenthicated, (req,res)=>{
       .catch((err) => {
         console.log('Error:', err)
       })
+    }
+    else
+    {
+      return res.status(400).json({
+        erroMessage: 'unauthorized access request'
+      })
+    }
 })
 
+
 router.delete('/deleteCompany', ensureAuthenthicated, (req,res)=>{
+  if(req.user._id.equals(process.env.ADMIN))
+  {
     if (!req.body.name) {
         return res.status(400).json({
           message: 'missing required parameters. refer documentation'
@@ -244,6 +284,13 @@ router.delete('/deleteCompany', ensureAuthenthicated, (req,res)=>{
       .catch((err) => {
         console.log('Error:', err)
       })
+    }
+    else
+    {
+      return res.status(400).json({
+        erroMessage: 'unauthorized access request'
+      })
+    }
 })
 
 

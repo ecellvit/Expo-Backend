@@ -7,7 +7,7 @@ const recaptcha = require('../config/recaptchaVerification')
 const User = require('../models/User')
 const Company = require('../models/Company')
 
-//@TODO Add recaptcha middleware
+// @TODO Add recaptcha middleware
 router.post('/login', recaptcha, (req, res, next) => {
   passport.authenticate('local', {
     successRedirect: '/users/success',
@@ -33,247 +33,251 @@ router.get('/dashboard', ensureAuthenthicated, (req, res) => {
   })
 })
 
-router.get('/getAppliedCompanies',ensureAuthenthicated,(req,res)=>{
-    return res.status(200).json({
-      appliedCompanies: req.user.booked
-    })
+router.get('/getAppliedCompanies', ensureAuthenthicated, (req, res) => {
+  return res.status(200).json({
+    appliedCompanies: req.user.booked
+  })
 })
 
-router.post('/apply', ensureAuthenthicated, (req,res)=>{
+router.post('/apply', ensureAuthenthicated, (req, res) => {
   if (!req.body.companyName || !req.body.companyId || !req.body.slotId) {
-      return res.status(400).json({
-        erroMessage: 'missing required parameters. refer documentation'
-      })
+    return res.status(400).json({
+      erroMessage: 'missing required parameters. refer documentation'
+    })
   }
 
-  if(req.user.booked.length == 2)
-  {
-      return res.status(400).json({
-        erroMessage: 'cannot apply to more than two'
-      })
+  if (req.user.booked.length == 2) {
+    return res.status(400).json({
+      erroMessage: 'cannot apply to more than two'
+    })
   }
 
-  for(let i=0;i<req.user.booked.length;i++)
-  {
-      if(req.user.booked[i].companyId === req.body.companyId)
-      {
-        return res.status(400).json({
-          erroMessage: 'cannot apply to same company twice'
-        })
-      }
+  for (let i = 0; i < req.user.booked.length; i++) {
+    if (req.user.booked[i].companyId === req.body.companyId) {
+      return res.status(400).json({
+        erroMessage: 'cannot apply to same company twice'
+      })
+    }
   }
-  
-  if(req.user.approvalStatus)
-  {
+
+  if (req.user.approvalStatus) {
     Company.findOne({ _id: req.body.companyId })
-      .then((company)=>{
+      .then((company) => {
         if (!company) {
-            return res.status(400).json({
-              erroMessage: 'company does not exist'
-            })
-        }
-        else{
-          
-            const slots = company.slots
-            var startTime;
-            for (let i = 0; i < slots.length; i++) 
-            {
-                if (slots[i]._id.equals(req.body.slotId)) 
-                {
-                    
-                    for(let j=0;j<req.user.booked.length;j++)
-                    { 
-                        if(req.user.booked[j].startTime === slots[i].startTime)
-                        {
-                          return res.status(400).json({
-                            erroMessage: 'cannot apply to two compaies as same time'
-                          })
-                        }
-                    }                         
-
-                    if(slots[i].available > 0)
-                    {
-                        for(let j = 0; j<slots[i].bookedBy.length; j++)
-                        {
-                            if(slots[i].bookedBy[j]._id.equals(req.user._id))
-                            {
-                              return res.status(400).json({
-                                erroMessage: 'cannot book twice in same slot'
-                              })
-                            }
-                        }
-                        slots[i].bookedBy.push(req.user)
-                        startTime = slots[i].startTime
-                        slots[i].available = slots[i].available - 1;
-                        break;
-                    }
-                    else
-                    {
-                      return res.status(400).json({
-                        erroMessage: 'no slots available'
-                      })
-                    }
+          return res.status(400).json({
+            erroMessage: 'company does not exist'
+          })
+        } else {
+          const slots = company.slots
+          let startTime
+          for (let i = 0; i < slots.length; i++) {
+            if (slots[i]._id.equals(req.body.slotId)) {
+              for (let j = 0; j < req.user.booked.length; j++) {
+                if (req.user.booked[j].startTime === slots[i].startTime) {
+                  return res.status(400).json({
+                    erroMessage: 'cannot apply to two compaies as same time'
+                  })
                 }
+              }
+
+              if (slots[i].available > 0) {
+                for (let j = 0; j < slots[i].bookedBy.length; j++) {
+                  if (slots[i].bookedBy[j]._id.equals(req.user._id)) {
+                    return res.status(400).json({
+                      erroMessage: 'cannot book twice in same slot'
+                    })
+                  }
+                }
+                slots[i].bookedBy.push(req.user)
+                startTime = slots[i].startTime
+                slots[i].available = slots[i].available - 1
+                break
+              } else {
+                return res.status(400).json({
+                  erroMessage: 'no slots available'
+                })
+              }
             }
+          }
 
-            Company.updateOne({ _id: req.body.companyId },
-                { $set: { slots: slots} })
-                .then((update) => {
-                    
-                  User.findOne({email: req.user.email})
-                    .then((user)=>{
-                      if(!user)
-                      {
-                          return res.status(400).json({
-                            erroMessage: 'user doesnt exists. please login'
-                          })
-                      }
-                      else
-                      {
-
-                          const booked = user.booked
-              
-                          const bookedData = {
-                              companyName: req.body.companyName,
-                              companyId: req.body.companyId,
-                              slotId: req.body.slotId,
-                              startTime: startTime
-                          }
-              
-                          booked.push(bookedData)
-
-                          User.updateOne({ email: req.user.email },
-                            { $set: { booked: booked } })
-                            .then((update) => {
-                              res.status(200).json({
-                                message: 'booked updated in db'
-                              })
-                            })
-                            .catch((err) => {
-                              console.log('Error:', err)
-                            })
-                      }
+          Company.updateOne({ _id: req.body.companyId },
+            { $set: { slots: slots } })
+            .then((update) => {
+              User.findOne({ email: req.user.email })
+                .then((user) => {
+                  if (!user) {
+                    return res.status(400).json({
+                      erroMessage: 'user doesnt exists. please login'
                     })
-                    .catch((err) => {
-                      console.log('Error:', err)
-                    })
+                  } else {
+                    const booked = user.booked
 
+                    const bookedData = {
+                      companyName: req.body.companyName,
+                      companyId: req.body.companyId,
+                      slotId: req.body.slotId,
+                      startTime: startTime
+                    }
+
+                    booked.push(bookedData)
+
+                    User.updateOne({ email: req.user.email },
+                      { $set: { booked: booked } })
+                      .then((update) => {
+                        res.status(200).json({
+                          message: 'booked updated in db'
+                        })
+                      })
+                      .catch((err) => {
+                        console.log('Error:', err)
+                      })
+                  }
                 })
                 .catch((err) => {
                   console.log('Error:', err)
                 })
-
+            })
+            .catch((err) => {
+              console.log('Error:', err)
+            })
         }
       })
       .catch((err) => {
         console.log('Error:', err)
       })
-  }
-  else
-  {
+  } else {
     return res.status(400).json({
       erroMessage: 'approval status false'
     })
   }
 })
 
-router.delete('/removeApplied', ensureAuthenthicated, (req,res)=>{
-  if (!req.body.companyId || !req.body.slotId) {
+router.get('/getAll', ensureAuthenthicated, (req, res) => {
+  if (req.user._id.equals(process.env.ADMIN)) {
+    User.find()
+      .then((infos) => {
+        res.status(200).json(infos)
+      })
+  } else {
+    return res.status(400).json({
+      erroMessage: 'unauthorized access request'
+    })
+  }
+})
+
+router.post('/approvalToggle', ensureAuthenthicated, (req, res) => {
+  if (req.user._id.equals(process.env.ADMIN)) {
+    if (!req.body.userId) {
       return res.status(400).json({
         erroMessage: 'missing required parameters. refer documentation'
       })
-  }
+    }
 
-  if(req.user.booked.length == 0)
-  {
-      return res.status(400).json({
-        erroMessage: 'Nothing to remove'
-      })
-  }
-
-  
-  if(req.user.approvalStatus)
-  {
-    Company.findOne({ _id: req.body.companyId })
-      .then((company)=>{
-        if (!company) {
-            return res.status(400).json({
-              erroMessage: 'company does not exist'
+    User.findOne({ _id: req.body.userId })
+      .then((user) => {
+        if (!user) {
+          return res.status(400).json({
+            erroMessage: 'user doesnt exists. please login'
+          })
+        } else {
+          User.updateOne({ _id: req.body.userId },
+            { $set: { approvalStatus: !user.approvalStatus } })
+            .then((update) => {
+              res.status(200).json({
+                message: 'details updated in db'
+              })
             })
-        }
-        else{
-          
-            const slots = company.slots
-            for (let i = 0; i < slots.length; i++) 
-            {
-                if (slots[i]._id.equals(req.body.slotId)) 
-                {
-                        for(let j = 0; j<slots[i].bookedBy.length; j++)
-                        {
-                            if(slots[i].bookedBy[j]._id.equals(req.user._id))
-                            {
-                              slots[i].bookedBy.splice(j,1);
-                              slots[i].available = slots[i].available + 1;
-                            }
-                        }
-                        break;
-                    
-                }
-            }
-
-            Company.updateOne({ _id: req.body.companyId },
-                { $set: { slots: slots} })
-                .then((update) => {
-                    
-                  User.findOne({email: req.user.email})
-                    .then((user)=>{
-                      if(!user)
-                      {
-                          return res.status(400).json({
-                            erroMessage: 'user doesnt exists. please login'
-                          })
-                      }
-                      else
-                      {
-
-                          const booked = user.booked
-                          for(let j = 0; j<booked.length; j++)
-                          {
-                              if(booked[j].slotId === req.body.slotId)
-                              {
-                                  booked.splice(j,1);
-                              }
-                          }
-
-                          User.updateOne({ email: req.user.email },
-                            { $set: { booked: booked } })
-                            .then((update) => {
-                              res.status(200).json({
-                                message: 'removed and updated in db'
-                              })
-                            })
-                            .catch((err) => {
-                              console.log('Error:', err)
-                            })
-                      }
-                    })
-                    .catch((err) => {
-                      console.log('Error:', err)
-                    })
-
-                })
-                .catch((err) => {
-                  console.log('Error:', err)
-                })
-
+            .catch((err) => {
+              console.log('Error:', err)
+            })
         }
       })
       .catch((err) => {
         console.log('Error:', err)
       })
+  } else {
+    return res.status(400).json({
+      erroMessage: 'unauthorized access request'
+    })
   }
-  else
-  {
+})
+
+router.delete('/removeApplied', ensureAuthenthicated, (req, res) => {
+  if (!req.body.companyId || !req.body.slotId) {
+    return res.status(400).json({
+      erroMessage: 'missing required parameters. refer documentation'
+    })
+  }
+
+  if (req.user.booked.length == 0) {
+    return res.status(400).json({
+      erroMessage: 'Nothing to remove'
+    })
+  }
+
+  if (req.user.approvalStatus) {
+    Company.findOne({ _id: req.body.companyId })
+      .then((company) => {
+        if (!company) {
+          return res.status(400).json({
+            erroMessage: 'company does not exist'
+          })
+        } else {
+          const slots = company.slots
+          for (let i = 0; i < slots.length; i++) {
+            if (slots[i]._id.equals(req.body.slotId)) {
+              for (let j = 0; j < slots[i].bookedBy.length; j++) {
+                if (slots[i].bookedBy[j]._id.equals(req.user._id)) {
+                  slots[i].bookedBy.splice(j, 1)
+                  slots[i].available = slots[i].available + 1
+                }
+              }
+              break
+            }
+          }
+
+          Company.updateOne({ _id: req.body.companyId },
+            { $set: { slots: slots } })
+            .then((update) => {
+              User.findOne({ email: req.user.email })
+                .then((user) => {
+                  if (!user) {
+                    return res.status(400).json({
+                      erroMessage: 'user doesnt exists. please login'
+                    })
+                  } else {
+                    const booked = user.booked
+                    for (let j = 0; j < booked.length; j++) {
+                      if (booked[j].slotId === req.body.slotId) {
+                        booked.splice(j, 1)
+                      }
+                    }
+
+                    User.updateOne({ email: req.user.email },
+                      { $set: { booked: booked } })
+                      .then((update) => {
+                        res.status(200).json({
+                          message: 'removed and updated in db'
+                        })
+                      })
+                      .catch((err) => {
+                        console.log('Error:', err)
+                      })
+                  }
+                })
+                .catch((err) => {
+                  console.log('Error:', err)
+                })
+            })
+            .catch((err) => {
+              console.log('Error:', err)
+            })
+        }
+      })
+      .catch((err) => {
+        console.log('Error:', err)
+      })
+  } else {
     return res.status(400).json({
       erroMessage: 'approval status false'
     })
@@ -289,39 +293,35 @@ router.get('/profile', ensureAuthenthicated, (req, res) => {
   })
 })
 
-router.patch('/update',ensureAuthenthicated,(req,res)=>{
+router.patch('/update', ensureAuthenthicated, (req, res) => {
   if (!req.body.name || !req.body.resumeLink || !req.body.phoneNo) {
     return res.status(400).json({
       erroMessage: 'missing required parameters. refer documentation'
     })
   }
 
-  User.findOne({email: req.user.email})
-    .then((user)=>{
-      if(!user)
-      {
-          return res.status(400).json({
-            erroMessage: 'user doesnt exists. please login'
+  User.findOne({ email: req.user.email })
+    .then((user) => {
+      if (!user) {
+        return res.status(400).json({
+          erroMessage: 'user doesnt exists. please login'
+        })
+      } else {
+        User.updateOne({ email: req.user.email },
+          { $set: { name: req.body.name, resumeLink: req.body.resumeLink, phoneNo: req.body.phoneNo } })
+          .then((update) => {
+            res.status(200).json({
+              message: 'details updated in db'
+            })
           })
-      }
-      else
-      {
-          User.updateOne({ email: req.user.email },
-            { $set: { name: req.body.name, resumeLink: req.body.resumeLink, phoneNo: req.body.phoneNo } })
-            .then((update) => {
-              res.status(200).json({
-                message: 'details updated in db'
-              })
-            })
-            .catch((err) => {
-              console.log('Error:', err)
-            })
+          .catch((err) => {
+            console.log('Error:', err)
+          })
       }
     })
     .catch((err) => {
       console.log('Error:', err)
     })
-
 })
 
 router.get('/logout', (req, res) => {
