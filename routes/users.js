@@ -1,63 +1,80 @@
-const router = require('express').Router()
-const bcrypt = require('bcryptjs')
-const passport = require('passport')
-const { ensureAuthenthicated } = require('../config/auth')
-const recaptcha = require('../config/recaptchaVerification')
-const { Auth } = require('two-step-auth')
+const router = require("express").Router();
+const bcrypt = require("bcryptjs");
+const passport = require("passport");
+const { ensureAuthenthicated } = require("../config/auth");
+const recaptcha = require("../config/recaptchaVerification");
+const { Auth } = require("two-step-auth");
 
-const User = require('../models/User')
-const Company = require('../models/Company')
+const User = require("../models/User");
+const Company = require("../models/Company");
 
 // @TODO Add recaptcha middleware
-router.post('/login', recaptcha, (req, res, next) => {
-  passport.authenticate('local-login', {
-    successRedirect: '/users/success',
-    failureRedirect: '/users/failure'
-  })(req, res, next)
-})
+router.post("/login", recaptcha, (req, res, next) => {
+  passport.authenticate("local", function (err, user, info) {
+    if (err) {
+      return next(err); // will generate a 500 error
+    }
+    // Generate a JSON response reflecting authentication status
+    if (!user) {
+      return res.send({ success: false, message: "authentication failed" });
+    }
+    // ***********************************************************************
+    // "Note that when using a custom callback, it becomes the application's
+    // responsibility to establish a session (by calling req.login()) and send
+    // a response."
+    // Source: http://passportjs.org/docs
+    // ***********************************************************************
+    req.login(user, (loginErr) => {
+      if (loginErr) {
+        return next(loginErr);
+      }
+      return res.send({ success: true, message: "authentication succeeded" });
+    });
+  })(req, res, next);
+});
 
-router.get('/success', (req, res) => {
+router.get("/success", (req, res) => {
   return res.status(200).json({
-    message: 'logged In'
-  })
-})
+    message: "logged In",
+  });
+});
 
-router.get('/failure', (req, res) => {
+router.get("/failure", (req, res) => {
   return res.status(400).json({
-    message: 'log in denied'
-  })
-})
+    message: "log in denied",
+  });
+});
 
-router.get('/dashboard', ensureAuthenthicated, (req, res) => {
+router.get("/dashboard", ensureAuthenthicated, (req, res) => {
   return res.status(400).json({
-    message: req.user.name + ' Logged In'
-  })
-})
+    message: req.user.name + " Logged In",
+  });
+});
 
-router.get('/getAppliedCompanies', ensureAuthenthicated, (req, res) => {
+router.get("/getAppliedCompanies", ensureAuthenthicated, (req, res) => {
   return res.status(200).json({
-    appliedCompanies: req.user.booked
-  })
-})
+    appliedCompanies: req.user.booked,
+  });
+});
 
-router.post('/apply', ensureAuthenthicated, (req, res) => {
+router.post("/apply", ensureAuthenthicated, (req, res) => {
   if (!req.body.companyName || !req.body.companyId || !req.body.slotId) {
     return res.status(400).json({
-      erroMessage: 'missing required parameters. refer documentation'
-    })
+      erroMessage: "missing required parameters. refer documentation",
+    });
   }
 
   if (req.user.booked.length == 2) {
     return res.status(400).json({
-      erroMessage: 'cannot apply to more than two'
-    })
+      erroMessage: "cannot apply to more than two",
+    });
   }
 
   for (let i = 0; i < req.user.booked.length; i++) {
     if (req.user.booked[i].companyId === req.body.companyId) {
       return res.status(400).json({
-        erroMessage: 'cannot apply to same company twice'
-      })
+        erroMessage: "cannot apply to same company twice",
+      });
     }
   }
 
@@ -66,18 +83,18 @@ router.post('/apply', ensureAuthenthicated, (req, res) => {
       .then((company) => {
         if (!company) {
           return res.status(400).json({
-            erroMessage: 'company does not exist'
-          })
+            erroMessage: "company does not exist",
+          });
         } else {
-          const slots = company.slots
-          let startTime
+          const slots = company.slots;
+          let startTime;
           for (let i = 0; i < slots.length; i++) {
             if (slots[i]._id.equals(req.body.slotId)) {
               for (let j = 0; j < req.user.booked.length; j++) {
                 if (req.user.booked[j].startTime === slots[i].startTime) {
                   return res.status(400).json({
-                    erroMessage: 'cannot apply to two compaies as same time'
-                  })
+                    erroMessage: "cannot apply to two compaies as same time",
+                  });
                 }
               }
 
@@ -85,135 +102,140 @@ router.post('/apply', ensureAuthenthicated, (req, res) => {
                 for (let j = 0; j < slots[i].bookedBy.length; j++) {
                   if (slots[i].bookedBy[j]._id.equals(req.user._id)) {
                     return res.status(400).json({
-                      erroMessage: 'cannot book twice in same slot'
-                    })
+                      erroMessage: "cannot book twice in same slot",
+                    });
                   }
                 }
-                slots[i].bookedBy.push(req.user)
-                startTime = slots[i].startTime
-                slots[i].available = slots[i].available - 1
-                break
+                slots[i].bookedBy.push(req.user);
+                startTime = slots[i].startTime;
+                slots[i].available = slots[i].available - 1;
+                break;
               } else {
                 return res.status(400).json({
-                  erroMessage: 'no slots available'
-                })
+                  erroMessage: "no slots available",
+                });
               }
             }
           }
 
-          Company.updateOne({ _id: req.body.companyId },
-            { $set: { slots: slots } })
+          Company.updateOne(
+            { _id: req.body.companyId },
+            { $set: { slots: slots } }
+          )
             .then((update) => {
               User.findOne({ email: req.user.email })
                 .then((user) => {
                   if (!user) {
                     return res.status(400).json({
-                      erroMessage: 'user doesnt exists. please login'
-                    })
+                      erroMessage: "user doesnt exists. please login",
+                    });
                   } else {
-                    const booked = user.booked
+                    const booked = user.booked;
 
                     const bookedData = {
                       companyName: req.body.companyName,
                       companyId: req.body.companyId,
                       slotId: req.body.slotId,
-                      startTime: startTime
-                    }
+                      startTime: startTime,
+                    };
 
-                    booked.push(bookedData)
+                    booked.push(bookedData);
 
-                    User.updateOne({ email: req.user.email },
-                      { $set: { booked: booked } })
+                    User.updateOne(
+                      { email: req.user.email },
+                      { $set: { booked: booked } }
+                    )
                       .then((update) => {
                         res.status(200).json({
-                          message: 'booked updated in db'
-                        })
+                          message: "booked updated in db",
+                        });
                       })
                       .catch((err) => {
-                        console.log('Error:', err)
-                      })
+                        console.log("Error:", err);
+                      });
                   }
                 })
                 .catch((err) => {
-                  console.log('Error:', err)
-                })
+                  console.log("Error:", err);
+                });
             })
             .catch((err) => {
-              console.log('Error:', err)
-            })
+              console.log("Error:", err);
+            });
         }
       })
       .catch((err) => {
-        console.log('Error:', err)
-      })
+        console.log("Error:", err);
+      });
   } else {
     return res.status(400).json({
-      erroMessage: 'approval status false'
-    })
+      erroMessage: "approval status false",
+    });
   }
-})
+});
 
-router.get('/getAll', ensureAuthenthicated, (req, res) => {
+router.get("/getAll", ensureAuthenthicated, (req, res) => {
   if (req.user._id.equals(process.env.ADMIN)) {
-    User.find()
-      .then((infos) => {
-        res.status(200).json(infos)
-      })
+    User.find().then((infos) => {
+      res.status(200).json(infos);
+    });
   } else {
     return res.status(400).json({
-      erroMessage: 'unauthorized access request'
-    })
+      erroMessage: "unauthorized access request",
+    });
   }
-})
+});
 
-router.post('/approvalToggle', ensureAuthenthicated, (req, res) => {
+router.post("/approvalToggle", ensureAuthenthicated, (req, res) => {
   if (req.user._id.equals(process.env.ADMIN)) {
     if (!req.body.userId) {
       return res.status(400).json({
-        erroMessage: 'missing required parameters. refer documentation'
-      })
+        erroMessage: "missing required parameters. refer documentation",
+      });
     }
 
     User.findOne({ _id: req.body.userId })
       .then((user) => {
         if (!user) {
           return res.status(400).json({
-            erroMessage: 'user doesnt exists. please login'
-          })
+            erroMessage: "user doesnt exists. please login",
+          });
         } else {
-          User.updateOne({ _id: req.body.userId },
-            { $set: { approvalStatus: !user.approvalStatus } })
+          User.updateOne(
+            { _id: req.body.userId },
+            { $set: { approvalStatus: !user.approvalStatus } }
+          )
             .then((update) => {
               res.status(200).json({
-                message: 'details updated in db'
-              })
+                message: "details updated in db",
+              });
             })
             .catch((err) => {
-              console.log('Error:', err)
-            })
+              console.log("Error:", err);
+            });
         }
       })
       .catch((err) => {
-        console.log('Error:', err)
-      })
+        console.log("Error:", err);
+      });
   } else {
     return res.status(400).json({
-      erroMessage: 'unauthorized access request'
-    })
+      erroMessage: "unauthorized access request",
+    });
   }
-})
+});
 
-router.delete('/removeApplied', ensureAuthenthicated, (req, res) => {
+router.delete("/removeApplied", ensureAuthenthicated, (req, res) => {
   if (!req.body.companyId || !req.body.slotId) {
     return res.status(400).json({
-      erroMessage: 'missing required parameters. refer documentation'
-    })
+      erroMessage: "missing required parameters. refer documentation",
+    });
   }
 
   if (req.user.booked.length == 0) {
     return res.status(400).json({
-      erroMessage: 'Nothing to remove'
-    })
+      erroMessage: "Nothing to remove",
+    });
   }
 
   if (req.user.approvalStatus) {
@@ -221,209 +243,228 @@ router.delete('/removeApplied', ensureAuthenthicated, (req, res) => {
       .then((company) => {
         if (!company) {
           return res.status(400).json({
-            erroMessage: 'company does not exist'
-          })
+            erroMessage: "company does not exist",
+          });
         } else {
-          const slots = company.slots
+          const slots = company.slots;
           for (let i = 0; i < slots.length; i++) {
             if (slots[i]._id.equals(req.body.slotId)) {
               for (let j = 0; j < slots[i].bookedBy.length; j++) {
                 if (slots[i].bookedBy[j]._id.equals(req.user._id)) {
-                  slots[i].bookedBy.splice(j, 1)
-                  slots[i].available = slots[i].available + 1
+                  slots[i].bookedBy.splice(j, 1);
+                  slots[i].available = slots[i].available + 1;
                 }
               }
-              break
+              break;
             }
           }
 
-          Company.updateOne({ _id: req.body.companyId },
-            { $set: { slots: slots } })
+          Company.updateOne(
+            { _id: req.body.companyId },
+            { $set: { slots: slots } }
+          )
             .then((update) => {
               User.findOne({ email: req.user.email })
                 .then((user) => {
                   if (!user) {
                     return res.status(400).json({
-                      erroMessage: 'user doesnt exists. please login'
-                    })
+                      erroMessage: "user doesnt exists. please login",
+                    });
                   } else {
-                    const booked = user.booked
+                    const booked = user.booked;
                     for (let j = 0; j < booked.length; j++) {
                       if (booked[j].slotId === req.body.slotId) {
-                        booked.splice(j, 1)
+                        booked.splice(j, 1);
                       }
                     }
 
-                    User.updateOne({ email: req.user.email },
-                      { $set: { booked: booked } })
+                    User.updateOne(
+                      { email: req.user.email },
+                      { $set: { booked: booked } }
+                    )
                       .then((update) => {
                         res.status(200).json({
-                          message: 'removed and updated in db'
-                        })
+                          message: "removed and updated in db",
+                        });
                       })
                       .catch((err) => {
-                        console.log('Error:', err)
-                      })
+                        console.log("Error:", err);
+                      });
                   }
                 })
                 .catch((err) => {
-                  console.log('Error:', err)
-                })
+                  console.log("Error:", err);
+                });
             })
             .catch((err) => {
-              console.log('Error:', err)
-            })
+              console.log("Error:", err);
+            });
         }
       })
       .catch((err) => {
-        console.log('Error:', err)
-      })
+        console.log("Error:", err);
+      });
   } else {
     return res.status(400).json({
-      erroMessage: 'approval status false'
-    })
+      erroMessage: "approval status false",
+    });
   }
-})
+});
 
-router.get('/profile', ensureAuthenthicated, (req, res) => {
+router.get("/profile", ensureAuthenthicated, (req, res) => {
   return res.status(400).json({
     name: req.user.name,
     email: req.user.email,
     phoneNo: req.user.phoneNo,
-    resumeLink: req.user.resumeLink
-  })
-})
+    resumeLink: req.user.resumeLink,
+  });
+});
 
-router.patch('/update', ensureAuthenthicated, (req, res) => {
+router.patch("/update", ensureAuthenthicated, (req, res) => {
   if (!req.body.name || !req.body.resumeLink || !req.body.phoneNo) {
     return res.status(400).json({
-      erroMessage: 'missing required parameters. refer documentation'
-    })
+      erroMessage: "missing required parameters. refer documentation",
+    });
   }
 
   User.findOne({ email: req.user.email })
     .then((user) => {
       if (!user) {
         return res.status(400).json({
-          erroMessage: 'user doesnt exists. please login'
-        })
+          erroMessage: "user doesnt exists. please login",
+        });
       } else {
-        User.updateOne({ email: req.user.email },
-          { $set: { name: req.body.name, resumeLink: req.body.resumeLink, phoneNo: req.body.phoneNo } })
+        User.updateOne(
+          { email: req.user.email },
+          {
+            $set: {
+              name: req.body.name,
+              resumeLink: req.body.resumeLink,
+              phoneNo: req.body.phoneNo,
+            },
+          }
+        )
           .then((update) => {
             res.status(200).json({
-              message: 'details updated in db'
-            })
+              message: "details updated in db",
+            });
           })
           .catch((err) => {
-            console.log('Error:', err)
-          })
+            console.log("Error:", err);
+          });
       }
     })
     .catch((err) => {
-      console.log('Error:', err)
-    })
-})
+      console.log("Error:", err);
+    });
+});
 
-router.get('/logout', (req, res) => {
-  req.logout()
+router.get("/logout", (req, res) => {
+  req.logout();
   return res.status(200).json({
-    message: 'logged out'
-  })
-})
+    message: "logged out",
+  });
+});
 
-let otp = 0
+let otp = 0;
 
-async function login (emailId) {
+async function login(emailId) {
   try {
-    const res = await Auth(emailId, 'IntenExpo')
-    otp = res.OTP
-    console.log(res.success)
+    const res = await Auth(emailId, "IntenExpo");
+    otp = res.OTP;
+    console.log(res.success);
   } catch (error) {
-    console.log(error)
+    console.log(error);
   }
 }
 
-router.post('/otpVerify', (req, res) => {
-  if (!req.body.name || !req.body.email || !req.body.password || !req.body.phoneNo || !req.body.otp) {
+router.post("/otpVerify", (req, res) => {
+  if (
+    !req.body.name ||
+    !req.body.email ||
+    !req.body.password ||
+    !req.body.phoneNo ||
+    !req.body.otp
+  ) {
     return res.status(400).json({
-      erroMessage: 'missing required parameters. refer documentation'
-    })
+      erroMessage: "missing required parameters. refer documentation",
+    });
   }
   if (req.body.otp == otp) {
-    const name = req.body.name
-    const email = req.body.email
-    const phoneNo = req.body.phoneNo
-    const password = req.body.password
-    const resumeLink = req.body.resumeLink
+    const name = req.body.name;
+    const email = req.body.email;
+    const phoneNo = req.body.phoneNo;
+    const password = req.body.password;
+    const resumeLink = req.body.resumeLink;
 
     const newUser = new User({
       name,
       password,
       email,
       phoneNo,
-      resumeLink
-    })
+      resumeLink,
+    });
 
     // hash
     bcrypt.genSalt(10, (err, salt) => {
       if (err) {
         return res.status(400).json({
-          erroMessage: err
-        })
+          erroMessage: err,
+        });
       }
       bcrypt.hash(newUser.password, salt, (err, hash) => {
         if (err) {
           return res.status(400).json({
-            erroMessage: err
-          })
+            erroMessage: err,
+          });
         }
 
-        newUser.password = hash
-        newUser.save()
+        newUser.password = hash;
+        newUser
+          .save()
           .then((user) => {
             return res.status(200).json({
-              message: 'success'
-            })
+              message: "success",
+            });
           })
           .catch((err) => {
             return res.status(400).json({
-              erroMessage: err
-            })
-          })
-      })
-    })
+              erroMessage: err,
+            });
+          });
+      });
+    });
   } else {
     return res.status(400).json({
-      erroMessage: 'otp not match'
-    })
+      erroMessage: "otp not match",
+    });
   }
-})
+});
 
-router.post('/register', (req, res) => {
+router.post("/register", (req, res) => {
   if (!req.body.email) {
     return res.status(400).json({
-      erroMessage: 'missing required parameters. refer documentation'
-    })
+      erroMessage: "missing required parameters. refer documentation",
+    });
   }
 
   User.findOne({ email: req.body.email })
     .then((user) => {
       if (user) {
         return res.status(400).json({
-          erroMessage: 'user already exists. please login'
-        })
+          erroMessage: "user already exists. please login",
+        });
       } else {
-        login(req.body.email)
+        login(req.body.email);
         return res.status(200).json({
-          otpSentStatus: 'success',
-          message: 'call otp verification endpoint'
-        })
+          otpSentStatus: "success",
+          message: "call otp verification endpoint",
+        });
       }
     })
     .catch((err) => {
-      console.log('Error:', err)
-    })
-})
+      console.log("Error:", err);
+    });
+});
 
-module.exports = router
+module.exports = router;
