@@ -265,7 +265,7 @@ router.delete('/deleteCompany', ensureAuthenthicated, (req, res) => {
     Company.deleteOne({ name: req.body.name })
       .then(() => {
         return res.status(200).json({
-          erroMessage: 'Deleted'
+          Message: 'Deleted'
         })
       })
       .catch((err) => {
