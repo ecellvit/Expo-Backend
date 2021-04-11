@@ -10,7 +10,7 @@ const Company = require('../models/Company')
 
 // @TODO Add recaptcha middleware
 router.post('/login', recaptcha, (req, res, next) => {
-  passport.authenticate('local', {
+  passport.authenticate('local-login', {
     successRedirect: '/users/success',
     failureRedirect: '/users/failure'
   })(req, res, next)
