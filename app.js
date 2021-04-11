@@ -5,6 +5,7 @@ const company = require('./routes/company')
 const mongoose = require('mongoose')
 const session = require('express-session')
 const passport = require('passport')
+const cors = require("cors");
 
 const app = express()
 
@@ -36,8 +37,20 @@ mongoose.connect(process.env.MONGODB_DB_URI, { useNewUrlParser: true, useUnified
     console.log('Error:', err)
   })
 
-app.use('/users', users)
-app.use('/company', company)
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization, auth-token"
+  );
+  if (req.method === "OPTIONS") {
+    res.header("Access-Control-Allow-Methods", "PUT, POST, PATCH, DELETE, GET");
+    return res.status(200).json({});
+  }
+  next();
+});
+
+app.use(cors());
 
 app.get('/', (req, res) => {
   res.status(200).json({
@@ -45,6 +58,9 @@ app.get('/', (req, res) => {
     message: 'refer docs'
   })
 })
+
+app.use('/users', users)
+app.use('/company', company)
 
 app.listen(PORT, () => {
   console.log('Server Started on port', PORT)
