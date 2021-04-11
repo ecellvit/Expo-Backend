@@ -3,6 +3,8 @@ const bcrypt = require('bcryptjs')
 const passport = require('passport')
 const { ensureAuthenthicated } = require('../config/auth')
 const recaptcha = require('../config/recaptchaVerification')
+const { Auth } = require("two-step-auth");
+
 
 const User = require('../models/User')
 const Company = require('../models/Company')
@@ -331,8 +333,80 @@ router.get('/logout', (req, res) => {
   })
 })
 
+var otp=0
+
+async function login(emailId) {
+  try {
+    const res = await Auth(emailId, "IntenExpo");
+    otp = res.OTP
+    console.log(res.success);
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+router.post('/otpVerify',(req,res)=>{
+  if (!req.body.name || !req.body.email || !req.body.password || !req.body.phoneNo || !req.body.otp) {
+    return res.status(400).json({
+      erroMessage: 'missing required parameters. refer documentation'
+    })
+  }
+  if(req.body.otp == otp)
+  {
+    const name = req.body.name
+    const email = req.body.email
+    const phoneNo = req.body.phoneNo
+    const password = req.body.password
+    const resumeLink = req.body.resumeLink
+
+    const newUser = new User({
+      name,
+      password,
+      email,
+      phoneNo,
+      resumeLink
+    })
+
+    // hash
+    bcrypt.genSalt(10, (err, salt) => {
+      if (err) {
+        return res.status(400).json({
+          erroMessage: err
+        })
+      }
+      bcrypt.hash(newUser.password, salt, (err, hash) => {
+        if (err) {
+          return res.status(400).json({
+            erroMessage: err
+          })
+        }
+
+        newUser.password = hash
+        newUser.save()
+          .then((user) => {
+            return res.status(200).json({
+              message: 'success'
+            })
+          })
+          .catch((err) => {
+            return res.status(400).json({
+              erroMessage: err
+            })
+          })
+      })
+    })
+  }
+  else
+  {
+    return res.status(400).json({
+      erroMessage: 'otp not match'
+    })
+  }
+})
+
+
 router.post('/register', (req, res) => {
-  if (!req.body.name || !req.body.email || !req.body.password || !req.body.phoneNo) {
+  if (!req.body.email) {
     return res.status(400).json({
       erroMessage: 'missing required parameters. refer documentation'
     })
@@ -345,47 +419,11 @@ router.post('/register', (req, res) => {
           erroMessage: 'user already exists. please login'
         })
       } else {
-        const name = req.body.name
-        const email = req.body.email
-        const phoneNo = req.body.phoneNo
-        const password = req.body.password
-        const resumeLink = req.body.resumeLink
-
-        const newUser = new User({
-          name,
-          password,
-          email,
-          phoneNo,
-          resumeLink
-        })
-
-        // hash
-        bcrypt.genSalt(10, (err, salt) => {
-          if (err) {
-            return res.status(400).json({
-              erroMessage: err
-            })
-          }
-          bcrypt.hash(newUser.password, salt, (err, hash) => {
-            if (err) {
-              return res.status(400).json({
-                erroMessage: err
-              })
-            }
-
-            newUser.password = hash
-            newUser.save()
-              .then((user) => {
-                return res.status(200).json({
-                  message: 'success'
-                })
-              })
-              .catch((err) => {
-                return res.status(400).json({
-                  erroMessage: err
-                })
-              })
-          })
+        
+        login(req.body.email);
+        return res.status(200).json({
+          otpSentStatus: 'success',
+          message:'call otp verification endpoint'
         })
       }
     })
