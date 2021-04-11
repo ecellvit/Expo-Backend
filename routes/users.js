@@ -3,8 +3,7 @@ const bcrypt = require('bcryptjs')
 const passport = require('passport')
 const { ensureAuthenthicated } = require('../config/auth')
 const recaptcha = require('../config/recaptchaVerification')
-const { Auth } = require("two-step-auth");
-
+const { Auth } = require('two-step-auth')
 
 const User = require('../models/User')
 const Company = require('../models/Company')
@@ -333,26 +332,25 @@ router.get('/logout', (req, res) => {
   })
 })
 
-var otp=0
+let otp = 0
 
-async function login(emailId) {
+async function login (emailId) {
   try {
-    const res = await Auth(emailId, "IntenExpo");
+    const res = await Auth(emailId, 'IntenExpo')
     otp = res.OTP
-    console.log(res.success);
+    console.log(res.success)
   } catch (error) {
-    console.log(error);
+    console.log(error)
   }
 }
 
-router.post('/otpVerify',(req,res)=>{
+router.post('/otpVerify', (req, res) => {
   if (!req.body.name || !req.body.email || !req.body.password || !req.body.phoneNo || !req.body.otp) {
     return res.status(400).json({
       erroMessage: 'missing required parameters. refer documentation'
     })
   }
-  if(req.body.otp == otp)
-  {
+  if (req.body.otp == otp) {
     const name = req.body.name
     const email = req.body.email
     const phoneNo = req.body.phoneNo
@@ -395,15 +393,12 @@ router.post('/otpVerify',(req,res)=>{
           })
       })
     })
-  }
-  else
-  {
+  } else {
     return res.status(400).json({
       erroMessage: 'otp not match'
     })
   }
 })
-
 
 router.post('/register', (req, res) => {
   if (!req.body.email) {
@@ -419,11 +414,10 @@ router.post('/register', (req, res) => {
           erroMessage: 'user already exists. please login'
         })
       } else {
-        
-        login(req.body.email);
+        login(req.body.email)
         return res.status(200).json({
           otpSentStatus: 'success',
-          message:'call otp verification endpoint'
+          message: 'call otp verification endpoint'
         })
       }
     })

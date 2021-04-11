@@ -280,11 +280,11 @@ router.delete('/deleteCompany', ensureAuthenthicated, (req, res) => {
 
 router.post('/uploadCSV', ensureAuthenthicated, upload.single('file'), (req, res) => {
   if (req.user._id.equals(process.env.ADMIN)) {
-    var companies = []
+    const companies = []
     fs.createReadStream('./uploads/expoTest.csv')
       .pipe(csv())
       .on('data', (row) => {
-        var data1 = {}
+        const data1 = {}
         data1.name = row.name
         data1.description = row.description
         data1.tags = row.tags.split(',')
@@ -293,17 +293,17 @@ router.post('/uploadCSV', ensureAuthenthicated, upload.single('file'), (req, res
       })
       .on('end', () => {
         Company.insertMany(companies)
-          .then(()=>{
+          .then(() => {
             return res.status(200).json({
               message: 'success added all companies'
-            })  
+            })
           })
-          .catch((error)=>{
-            console.log(error) 
+          .catch((error) => {
+            console.log(error)
             return res.status(400).json({
               erroMessage: error
-            })     
-        })
+            })
+          })
       })
   } else {
     return res.status(400).json({

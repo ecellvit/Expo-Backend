@@ -38,7 +38,7 @@ const companySchema = new Schema({
     type: Array,
     default: []
   },
-  workFrom:{
+  workFrom: {
     type: String
   },
   slots: [slotSchema]
