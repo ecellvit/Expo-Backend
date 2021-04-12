@@ -321,12 +321,27 @@ router.delete("/removeApplied", verify, (req, res) => {
 });
 
 router.get("/profile", verify, (req, res) => {
-  return res.status(200).json({
-    name: req.user.name,
-    email: req.user.email,
-    phoneNo: req.user.phoneNo,
-    resumeLink: req.user.resumeLink,
-  });
+  User.findOne({email: req.user.email})
+    .then((user)=>{
+      if(!user)
+      {
+        return res.status(400).json({
+          Message:"Not a user"
+        });
+      }
+      return res.status(200).json({
+        name: user.name,
+        email: user.email,
+        phoneNo: user.phoneNo,
+        resumeLink: user.resumeLink,
+      });
+    })
+    .catch((err) => {
+      console.log("Error:", err);
+      return res.status(400).json({
+        Error:err
+      });
+    });
 });
 
 router.patch("/update", verify, (req, res) => {
