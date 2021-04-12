@@ -1,8 +1,8 @@
 const router = require('express').Router()
-const { ensureAuthenthicated } = require('../config/auth')
 const multer = require('multer')
 const path = require('path')
 const csv = require('csv-parser')
+const verify = require('./verifyToken');
 const fs = require('fs')
 const directoryPath = path.join(__dirname, '../uploads')
 
@@ -21,7 +21,7 @@ const storage = multer.diskStorage({
 })
 const upload = multer({ storage })
 
-router.post('/add', ensureAuthenthicated, (req, res) => {
+router.post('/add', verify, (req, res) => {
   if (req.user._id.equals(process.env.ADMIN)) {
     if (!req.body.name || !req.body.description || !req.body.startTime || !req.body.endTime) {
       return res.status(400).json({
@@ -79,14 +79,14 @@ router.post('/add', ensureAuthenthicated, (req, res) => {
   }
 })
 
-router.get('/getAll', ensureAuthenthicated, (req, res) => {
+router.get('/getAll', verify, (req, res) => {
   Company.find()
     .then((infos) => {
       res.status(200).json(infos)
     })
 })
 
-router.post('/getData', ensureAuthenthicated, (req, res) => {
+router.post('/getData', verify, (req, res) => {
   if (!req.body.name) {
     return res.status(400).json({
       erroMessage: 'missing required parameters. refer documentation'
@@ -108,7 +108,7 @@ router.post('/getData', ensureAuthenthicated, (req, res) => {
     })
 })
 
-router.post('/addSlot', ensureAuthenthicated, (req, res) => {
+router.post('/addSlot', verify, (req, res) => {
   if (req.user._id.equals(process.env.ADMIN)) {
     if (!req.body.name || !req.body.startTime || !req.body.endTime) {
       return res.status(400).json({
@@ -157,7 +157,7 @@ router.post('/addSlot', ensureAuthenthicated, (req, res) => {
   }
 })
 
-router.patch('/updateSlot', ensureAuthenthicated, (req, res) => {
+router.patch('/updateSlot', verify, (req, res) => {
   if (req.user._id.equals(process.env.ADMIN)) {
     if (!req.body.name || !req.body.id || !req.body.startTime || !req.body.endTime) {
       return res.status(400).json({
@@ -209,7 +209,7 @@ router.patch('/updateSlot', ensureAuthenthicated, (req, res) => {
   }
 })
 
-router.delete('/deleteSlot', ensureAuthenthicated, (req, res) => {
+router.delete('/deleteSlot', verify, (req, res) => {
   if (req.user._id.equals(process.env.ADMIN)) {
     if (!req.body.name || !req.body.id) {
       return res.status(400).json({
@@ -254,7 +254,7 @@ router.delete('/deleteSlot', ensureAuthenthicated, (req, res) => {
   }
 })
 
-router.delete('/deleteCompany', ensureAuthenthicated, (req, res) => {
+router.delete('/deleteCompany', verify, (req, res) => {
   if (req.user._id.equals(process.env.ADMIN)) {
     if (!req.body.name) {
       return res.status(400).json({
@@ -278,7 +278,7 @@ router.delete('/deleteCompany', ensureAuthenthicated, (req, res) => {
   }
 })
 
-router.post('/uploadCSV', ensureAuthenthicated, upload.single('file'), (req, res) => {
+router.post('/uploadCSV', verify, upload.single('file'), (req, res) => {
   if (req.user._id.equals(process.env.ADMIN)) {
     const companies = []
     fs.createReadStream('./uploads/expoTest.csv')
