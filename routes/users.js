@@ -312,6 +312,12 @@ router.delete("/removeApplied", ensureAuthenthicated, (req, res) => {
 });
 
 router.get("/profile", ensureAuthenthicated, (req, res) => {
+  if(!req.user)
+  {
+    return res.status(400).json({
+      message: "The user is not logged in"
+    });
+  }
   return res.status(400).json({
     name: req.user.name,
     email: req.user.email,
