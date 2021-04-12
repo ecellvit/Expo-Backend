@@ -100,8 +100,8 @@ router.post("/apply", verify, (req, res) => {
               let startTime;
               for (let i = 0; i < slots.length; i++) {
                 if (slots[i]._id.equals(req.body.slotId)) {
-                  for (let j = 0; j < req.user.booked.length; j++) {
-                    if (req.user.booked[j].startTime === slots[i].startTime) {
+                  for (let j = 0; j < user.booked.length; j++) {
+                    if (user.booked[j].startTime === slots[i].startTime) {
                       return res.status(400).json({
                         erroMessage: "cannot apply to two compaies as same time",
                       });
