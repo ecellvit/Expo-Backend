@@ -1,36 +1,35 @@
 const router = require("express").Router();
 const bcrypt = require("bcryptjs");
-const passport = require("passport");
-const { ensureAuthenthicated } = require("../config/auth");
 const recaptcha = require("../config/recaptchaVerification");
+const verify = require('./verifyToken');
 const { Auth } = require("two-step-auth");
+const jwt = require('jsonwebtoken');
 
 const User = require("../models/User");
 const Company = require("../models/Company");
 
 // @TODO Add recaptcha middleware
-router.post("/login", (req, res, next) => {
-  passport.authenticate("local", function (err, user, info) {
-    if (err) {
-      return next(err); // will generate a 500 error
-    }
-    // Generate a JSON response reflecting authentication status
-    if (!user) {
-      return res.send({ success: false, message: "authentication failed" });
-    }
-    // ***********************************************************************
-    // "Note that when using a custom callback, it becomes the application's
-    // responsibility to establish a session (by calling req.login()) and send
-    // a response."
-    // Source: http://passportjs.org/docs
-    // ***********************************************************************
-    req.login(user, (loginErr) => {
-      if (loginErr) {
-        return next(loginErr);
-      }
-      return res.send({ success: true, message: "authentication succeeded" });
-    });
-  })(req, res, next);
+router.post("/login", async (req, res) => {
+ 
+  //CHECKING IF EMAIL EXISTS
+  const user = await User.findOne({email:req.body.email});
+  if(!user)
+  {
+      return res.status(400).send('Email or Password Does Not Exist');
+  }
+
+  //CHECKING IF PASSWORD IS CORRECT
+  const validPass = await bcrypt.compare(req.body.password,user.password);
+  
+  if(!validPass)
+  {
+      return res.status(400).send('Invalid Password or Email');
+  }
+
+  //CREATE AND ASSIGN A TOKEN
+  const token = jwt.sign({_id: user._id, name: user.name, email: user.email, phoneNo: user.phoneNo, resumeLink: user.resumeLink },process.env.TOKEN_SECRET);
+  res.header('auth-token',token).send(token);
+
 });
 
 router.get("/success", (req, res) => {
@@ -45,19 +44,19 @@ router.get("/failure", (req, res) => {
   });
 });
 
-router.get("/dashboard", ensureAuthenthicated, (req, res) => {
+router.get("/dashboard", verify, (req, res) => {
   return res.status(400).json({
     message: req.user.name + " Logged In",
   });
 });
 
-router.get("/getAppliedCompanies", ensureAuthenthicated, (req, res) => {
+router.get("/getAppliedCompanies", verify, (req, res) => {
   return res.status(200).json({
     appliedCompanies: req.user.booked,
   });
 });
 
-router.post("/apply", ensureAuthenthicated, (req, res) => {
+router.post("/apply", verify, (req, res) => {
   if (!req.body.companyName || !req.body.companyId || !req.body.slotId) {
     return res.status(400).json({
       erroMessage: "missing required parameters. refer documentation",
@@ -174,7 +173,7 @@ router.post("/apply", ensureAuthenthicated, (req, res) => {
   }
 });
 
-router.get("/getAll", ensureAuthenthicated, (req, res) => {
+router.get("/getAll", verify, (req, res) => {
   if (req.user._id.equals(process.env.ADMIN)) {
     User.find().then((infos) => {
       res.status(200).json(infos);
@@ -186,7 +185,7 @@ router.get("/getAll", ensureAuthenthicated, (req, res) => {
   }
 });
 
-router.post("/approvalToggle", ensureAuthenthicated, (req, res) => {
+router.post("/approvalToggle", verify, (req, res) => {
   if (req.user._id.equals(process.env.ADMIN)) {
     if (!req.body.userId) {
       return res.status(400).json({
@@ -225,7 +224,7 @@ router.post("/approvalToggle", ensureAuthenthicated, (req, res) => {
   }
 });
 
-router.delete("/removeApplied", ensureAuthenthicated, (req, res) => {
+router.delete("/removeApplied", verify, (req, res) => {
   if (!req.body.companyId || !req.body.slotId) {
     return res.status(400).json({
       erroMessage: "missing required parameters. refer documentation",
@@ -311,7 +310,7 @@ router.delete("/removeApplied", ensureAuthenthicated, (req, res) => {
   }
 });
 
-router.get("/profile", ensureAuthenthicated, (req, res) => {
+router.get("/profile", verify, (req, res) => {
   return res.status(200).json({
     name: req.user.name,
     email: req.user.email,
@@ -320,7 +319,7 @@ router.get("/profile", ensureAuthenthicated, (req, res) => {
   });
 });
 
-router.patch("/update", ensureAuthenthicated, (req, res) => {
+router.patch("/update", verify, (req, res) => {
   if (!req.body.name || !req.body.resumeLink || !req.body.phoneNo) {
     return res.status(400).json({
       erroMessage: "missing required parameters. refer documentation",
