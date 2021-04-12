@@ -9,7 +9,7 @@ const User = require("../models/User");
 const Company = require("../models/Company");
 
 // @TODO Add recaptcha middleware
-router.post("/login",(req, res) => {
+router.post("/login",recaptcha, (req, res) => {
  
   //CHECKING IF EMAIL EXISTS
   User.findOne({email:req.body.email})
@@ -354,6 +354,7 @@ router.patch("/update", verify, (req, res) => {
           }
         )
           .then((update) => {
+            req.user.resumeLink = req.body.resumeLink
             res.status(200).json({
               message: "details updated in db",
             });
