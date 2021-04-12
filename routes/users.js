@@ -28,7 +28,7 @@ router.post("/login",recaptcha, (req, res) => {
       }
     
       //CREATE AND ASSIGN A TOKEN
-      const token = jwt.sign({_id: user._id, name: user.name, email: user.email, phoneNo: user.phoneNo, resumeLink: user.resumeLink },process.env.TOKEN_SECRET);
+      const token = jwt.sign({_id: user._id, name: user.name, email: user.email, phoneNo: user.phoneNo, resumeLink: user.resumeLink, booked: user.booked },process.env.TOKEN_SECRET);
       res.header('auth-token',token).status(200).json({
         success:true,
         message:'authenticated. token in header',
