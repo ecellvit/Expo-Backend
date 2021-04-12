@@ -61,9 +61,15 @@ router.get("/dashboard", verify, (req, res) => {
 });
 
 router.get("/getAppliedCompanies", verify, (req, res) => {
-  return res.status(200).json({
-    appliedCompanies: req.user.booked,
-  });
+  User.findOne({email:req.user.email})
+    .then((user)=>{
+      return res.status(200).json({
+        appliedCompanies: user.booked,
+      });
+    })
+    .catch((err) => {
+      console.log("Error:", err);
+    })
 });
 
 router.post("/apply", verify, (req, res) => {
@@ -73,21 +79,23 @@ router.post("/apply", verify, (req, res) => {
     });
   }
 
-  if (req.user.booked.length == 2) {
-    return res.status(400).json({
-      erroMessage: "cannot apply to more than two",
-    });
-  }
-
-  for (let i = 0; i < req.user.booked.length; i++) {
-    if (req.user.booked[i].companyId === req.body.companyId) {
-      return res.status(400).json({
-        erroMessage: "cannot apply to same company twice",
-      });
-    }
-  }
+  
   User.findOne({email:req.user.email})
     .then((user)=>{
+      if (user.booked.length == 2) {
+        return res.status(400).json({
+          erroMessage: "cannot apply to more than two",
+        });
+      }
+    
+      for (let i = 0; i < user.booked.length; i++) {
+        if (user.booked[i].companyId === req.body.companyId) {
+          return res.status(400).json({
+            erroMessage: "cannot apply to same company twice",
+          });
+        }
+      }
+
       if (user.approvalStatus) {
         Company.findOne({ _id: req.body.companyId })
           .then((company) => {
@@ -248,83 +256,90 @@ router.delete("/removeApplied", verify, (req, res) => {
     });
   }
 
-  if (req.user.booked.length == 0) {
-    return res.status(400).json({
-      erroMessage: "Nothing to remove",
-    });
-  }
-
-  if (req.user.approvalStatus) {
-    Company.findOne({ _id: req.body.companyId })
-      .then((company) => {
-        if (!company) {
-          return res.status(400).json({
-            erroMessage: "company does not exist",
-          });
-        } else {
-          const slots = company.slots;
-          for (let i = 0; i < slots.length; i++) {
-            if (slots[i]._id.equals(req.body.slotId)) {
-              for (let j = 0; j < slots[i].bookedBy.length; j++) {
-                if (slots[i].bookedBy[j]._id.equals(req.user._id)) {
-                  slots[i].bookedBy.splice(j, 1);
-                  slots[i].available = slots[i].available + 1;
-                }
-              }
-              break;
-            }
-          }
-
-          Company.updateOne(
-            { _id: req.body.companyId },
-            { $set: { slots: slots } }
-          )
-            .then((update) => {
-              User.findOne({ email: req.user.email })
-                .then((user) => {
-                  if (!user) {
-                    return res.status(400).json({
-                      erroMessage: "user doesnt exists. please login",
-                    });
-                  } else {
-                    const booked = user.booked;
-                    for (let j = 0; j < booked.length; j++) {
-                      if (booked[j].slotId === req.body.slotId) {
-                        booked.splice(j, 1);
-                      }
-                    }
-
-                    User.updateOne(
-                      { email: req.user.email },
-                      { $set: { booked: booked } }
-                    )
-                      .then((update) => {
-                        res.status(200).json({
-                          message: "removed and updated in db",
-                        });
-                      })
-                      .catch((err) => {
-                        console.log("Error:", err);
-                      });
-                  }
-                })
-                .catch((err) => {
-                  console.log("Error:", err);
-                });
-            })
-            .catch((err) => {
-              console.log("Error:", err);
-            });
-        }
-      })
-      .catch((err) => {
-        console.log("Error:", err);
+  User.findOne({ _id: req.body.userId })
+  .then((user) => {
+    if (user.booked.length == 0) {
+      return res.status(400).json({
+        erroMessage: "Nothing to remove",
       });
-  } else {
-    return res.status(400).json({
-      erroMessage: "approval status false",
-    });
-  }
+    }
+  
+    if (user.approvalStatus) {
+      Company.findOne({ _id: req.body.companyId })
+        .then((company) => {
+          if (!company) {
+            return res.status(400).json({
+              erroMessage: "company does not exist",
+            });
+          } else {
+            const slots = company.slots;
+            for (let i = 0; i < slots.length; i++) {
+              if (slots[i]._id.equals(req.body.slotId)) {
+                for (let j = 0; j < slots[i].bookedBy.length; j++) {
+                  if (slots[i].bookedBy[j]._id.equals(req.user._id)) {
+                    slots[i].bookedBy.splice(j, 1);
+                    slots[i].available = slots[i].available + 1;
+                  }
+                }
+                break;
+              }
+            }
+  
+            Company.updateOne(
+              { _id: req.body.companyId },
+              { $set: { slots: slots } }
+            )
+              .then((update) => {
+                User.findOne({ email: req.user.email })
+                  .then((user) => {
+                    if (!user) {
+                      return res.status(400).json({
+                        erroMessage: "user doesnt exists. please login",
+                      });
+                    } else {
+                      const booked = user.booked;
+                      for (let j = 0; j < booked.length; j++) {
+                        if (booked[j].slotId === req.body.slotId) {
+                          booked.splice(j, 1);
+                        }
+                      }
+  
+                      User.updateOne(
+                        { email: req.user.email },
+                        { $set: { booked: booked } }
+                      )
+                        .then((update) => {
+                          res.status(200).json({
+                            message: "removed and updated in db",
+                          });
+                        })
+                        .catch((err) => {
+                          console.log("Error:", err);
+                        });
+                    }
+                  })
+                  .catch((err) => {
+                    console.log("Error:", err);
+                  });
+              })
+              .catch((err) => {
+                console.log("Error:", err);
+              });
+          }
+        })
+        .catch((err) => {
+          console.log("Error:", err);
+        });
+    } else {
+      return res.status(400).json({
+        erroMessage: "approval status false",
+      });
+    }
+  })
+  .catch((err) => {
+    console.log("Error:", err);
+  });
+
 });
 
 router.get("/profile", verify, (req, res) => {
