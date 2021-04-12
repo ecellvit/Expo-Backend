@@ -9,30 +9,36 @@ const User = require("../models/User");
 const Company = require("../models/Company");
 
 // @TODO Add recaptcha middleware
-router.post("/login", async (req, res) => {
+router.post("/login",(req, res) => {
  
   //CHECKING IF EMAIL EXISTS
-  const user = await User.findOne({email:req.body.email});
-  if(!user)
-  {
-      return res.status(400).send('Email or Password Does Not Exist');
-  }
-
-  //CHECKING IF PASSWORD IS CORRECT
-  const validPass = await bcrypt.compare(req.body.password,user.password);
+  User.findOne({email:req.body.email})
+    .then((user)=>{
+      if(!user)
+      {
+          return res.status(400).send('Email or Password Does Not Exist');
+      }
+    
+      //CHECKING IF PASSWORD IS CORRECT
+      const validPass = bcrypt.compare(req.body.password,user.password);
+      
+      if(!validPass)
+      {
+          return res.status(400).send('Invalid Password or Email');
+      }
+    
+      //CREATE AND ASSIGN A TOKEN
+      const token = jwt.sign({_id: user._id, name: user.name, email: user.email, phoneNo: user.phoneNo, resumeLink: user.resumeLink },process.env.TOKEN_SECRET);
+      res.header('auth-token',token).status(200).json({
+        success:true,
+        message:'authenticated. token in header',
+        token : token
+      });
+    })
+    .catch((err) => {
+      console.log("Error:", err);
+    })
   
-  if(!validPass)
-  {
-      return res.status(400).send('Invalid Password or Email');
-  }
-
-  //CREATE AND ASSIGN A TOKEN
-  const token = jwt.sign({_id: user._id, name: user.name, email: user.email, phoneNo: user.phoneNo, resumeLink: user.resumeLink },process.env.TOKEN_SECRET);
-  res.header('auth-token',token).status(200).json({
-    success:true,
-    message:'authenticated. token in header',
-    token : token
-  });
 
 });
 
