@@ -86,7 +86,7 @@ router.post("/apply", verify, (req, res) => {
       });
     }
   }
-  User.findOne({email:req.body.email})
+  User.findOne({email:req.user.email})
     .then((user)=>{
       if (user.approvalStatus) {
         Company.findOne({ _id: req.body.companyId })
