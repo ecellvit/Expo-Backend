@@ -9,7 +9,7 @@ const User = require("../models/User");
 const Company = require("../models/Company");
 
 // @TODO Add recaptcha middleware
-router.post("/login", recaptcha, (req, res, next) => {
+router.post("/login", (req, res, next) => {
   passport.authenticate("local", function (err, user, info) {
     if (err) {
       return next(err); // will generate a 500 error
