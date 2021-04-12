@@ -355,6 +355,8 @@ router.patch("/update", verify, (req, res) => {
         )
           .then((update) => {
             req.user.resumeLink = req.body.resumeLink
+            req.user.name = req.body.name
+            req.user.phoneNo = req.body.phoneNo
             res.status(200).json({
               message: "details updated in db",
             });
