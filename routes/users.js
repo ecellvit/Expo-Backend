@@ -442,53 +442,65 @@ router.post("/otpVerify", (req, res) => {
       errorMessage: "Missing Required Params",
     });
   }
-  if (req.body.otp == otp) {
-    const name = req.body.name;
-    const email = req.body.email;
-    const phoneNo = req.body.phoneNo;
-    const password = req.body.password;
-
-    const newUser = new User({
-      name,
-      password,
-      email,
-      phoneNo,
-    });
-
-    // hash
-    bcrypt.genSalt(10, (err, salt) => {
-      if (err) {
+  User.findOne({ email: req.body.email })
+    .then((user) => {
+      if (user) {
         return res.status(400).json({
-          errorMessage: err,
+          errorMessage: "User Already Exists",
         });
-      }
-      bcrypt.hash(newUser.password, salt, (err, hash) => {
-        if (err) {
+      } else {
+        if (req.body.otp == otp) {
+          const name = req.body.name;
+          const email = req.body.email;
+          const phoneNo = req.body.phoneNo;
+          const password = req.body.password;
+
+          const newUser = new User({
+            name,
+            password,
+            email,
+            phoneNo,
+          });
+
+          // hash
+          bcrypt.genSalt(10, (err, salt) => {
+            if (err) {
+              return res.status(400).json({
+                errorMessage: err,
+              });
+            }
+            bcrypt.hash(newUser.password, salt, (err, hash) => {
+              if (err) {
+                return res.status(400).json({
+                  errorMessage: err,
+                });
+              }
+
+              newUser.password = hash;
+              newUser
+                .save()
+                .then((user) => {
+                  return res.status(200).json({
+                    message: "success",
+                  });
+                })
+                .catch((err) => {
+                  return res.status(400).json({
+                    errorMessage: err,
+                  });
+                });
+            });
+          });
+        } else {
           return res.status(400).json({
-            errorMessage: err,
+            errorMessage: "OTP doesn't match!",
           });
         }
-
-        newUser.password = hash;
-        newUser
-          .save()
-          .then((user) => {
-            return res.status(200).json({
-              message: "success",
-            });
-          })
-          .catch((err) => {
-            return res.status(400).json({
-              errorMessage: err,
-            });
-          });
-      });
+      }
+    })
+    .catch((err) => {
+      console.log("Error:", err);
     });
-  } else {
-    return res.status(400).json({
-      errorMessage: "OTP doesn't match!",
-    });
-  }
 });
 
 router.post("/register", (req, res) => {
