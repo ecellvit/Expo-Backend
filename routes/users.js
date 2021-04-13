@@ -118,7 +118,7 @@ router.post("/apply", verify, (req, res) => {
 
                   if (slots[i].available > 0) {
                     for (let j = 0; j < slots[i].bookedBy.length; j++) {
-                      if (slots[i].bookedBy[j]._id.equals(req.user._id)) {
+                      if (slots[i].bookedBy[j]._id === req.user._id) {
                         return res.status(400).json({
                           erroMessage: "cannot book twice in same slot",
                         });
