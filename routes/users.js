@@ -447,14 +447,12 @@ router.post("/otpVerify", (req, res) => {
     const email = req.body.email;
     const phoneNo = req.body.phoneNo;
     const password = req.body.password;
-    const resumeLink = req.body.resumeLink;
 
     const newUser = new User({
       name,
       password,
       email,
       phoneNo,
-      resumeLink,
     });
 
     // hash
