@@ -258,7 +258,6 @@ router.delete("/removeApplied", verify, (req, res) => {
 
   User.findOne({ email:req.user.email })
   .then((user) => {
-    console.log(user)
     if (user.booked.length == 0) {
       return res.status(400).json({
         erroMessage: "Nothing to remove",
@@ -277,7 +276,9 @@ router.delete("/removeApplied", verify, (req, res) => {
             for (let i = 0; i < slots.length; i++) {
               if (slots[i]._id.equals(req.body.slotId)) {
                 for (let j = 0; j < slots[i].bookedBy.length; j++) {
-                  if (slots[i].bookedBy[j]._id.equals(req.user._id)) {
+                  console.log(slots[i].bookedBy[j]._id)
+                  console.log(req.user._id)
+                  if (slots[i].bookedBy[j]._id === req.user._id) {
                     slots[i].bookedBy.splice(j, 1);
                     slots[i].available = slots[i].available + 1;
                   }
