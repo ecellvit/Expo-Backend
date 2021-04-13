@@ -10,7 +10,7 @@ const Company = require("../models/Company");
 
 // @TODO Add recaptcha middleware
 router.post("/login",recaptcha, (req, res) => {
- 
+
   //CHECKING IF EMAIL EXISTS
   User.findOne({email:req.body.email})
     .then((user)=>{
@@ -18,15 +18,15 @@ router.post("/login",recaptcha, (req, res) => {
       {
           return res.status(400).send('Email or Password Does Not Exist');
       }
-    
+
       //CHECKING IF PASSWORD IS CORRECT
       const validPass = bcrypt.compare(req.body.password,user.password);
-      
+
       if(!validPass)
       {
           return res.status(400).send('Invalid Password or Email');
       }
-    
+
       //CREATE AND ASSIGN A TOKEN
       const token = jwt.sign({_id: user._id, name: user.name, email: user.email, phoneNo: user.phoneNo, resumeLink: user.resumeLink, booked: user.booked, approvalStatus: user.approvalStatus },process.env.TOKEN_SECRET);
       res.header('auth-token',token).status(200).json({
@@ -38,7 +38,7 @@ router.post("/login",recaptcha, (req, res) => {
     .catch((err) => {
       console.log("Error:", err);
     })
-  
+
 
 });
 
@@ -79,7 +79,7 @@ router.post("/apply", verify, (req, res) => {
     });
   }
 
-  
+
   User.findOne({email:req.user.email})
     .then((user)=>{
       if (user.booked.length == 2) {
@@ -87,7 +87,7 @@ router.post("/apply", verify, (req, res) => {
           erroMessage: "cannot apply to more than two",
         });
       }
-    
+
       for (let i = 0; i < user.booked.length; i++) {
         if (user.booked[i].companyId === req.body.companyId) {
           return res.status(400).json({
@@ -115,7 +115,7 @@ router.post("/apply", verify, (req, res) => {
                       });
                     }
                   }
-    
+
                   if (slots[i].available > 0) {
                     for (let j = 0; j < slots[i].bookedBy.length; j++) {
                       if (slots[i].bookedBy[j]._id.equals(req.user._id)) {
@@ -135,7 +135,7 @@ router.post("/apply", verify, (req, res) => {
                   }
                 }
               }
-    
+
               Company.updateOne(
                 { _id: req.body.companyId },
                 { $set: { slots: slots } }
@@ -149,16 +149,16 @@ router.post("/apply", verify, (req, res) => {
                         });
                       } else {
                         const booked = user.booked;
-    
+
                         const bookedData = {
                           companyName: req.body.companyName,
                           companyId: req.body.companyId,
                           slotId: req.body.slotId,
                           startTime: startTime,
                         };
-    
+
                         booked.push(bookedData);
-    
+
                         User.updateOne(
                           { email: req.user.email },
                           { $set: { booked: booked } }
@@ -195,7 +195,7 @@ router.post("/apply", verify, (req, res) => {
       console.log("Error:", err);
     })
 
- 
+
 });
 
 router.get("/getAll", verify, (req, res) => {
@@ -218,7 +218,7 @@ router.post("/approvalToggle", verify, (req, res) => {
       });
     }
 
-    User.findOne({ _id: req.body.userId })
+    User.findOne({ email:req.user.email })
       .then((user) => {
         if (!user) {
           return res.status(400).json({
@@ -256,14 +256,15 @@ router.delete("/removeApplied", verify, (req, res) => {
     });
   }
 
-  User.findOne({ _id: req.body.userId })
+  User.findOne({ _id: req.user.userId })
   .then((user) => {
+    console.log(user)
     if (user.booked.length == 0) {
       return res.status(400).json({
         erroMessage: "Nothing to remove",
       });
     }
-  
+
     if (user.approvalStatus) {
       Company.findOne({ _id: req.body.companyId })
         .then((company) => {
@@ -284,7 +285,7 @@ router.delete("/removeApplied", verify, (req, res) => {
                 break;
               }
             }
-  
+
             Company.updateOne(
               { _id: req.body.companyId },
               { $set: { slots: slots } }
@@ -303,7 +304,7 @@ router.delete("/removeApplied", verify, (req, res) => {
                           booked.splice(j, 1);
                         }
                       }
-  
+
                       User.updateOne(
                         { email: req.user.email },
                         { $set: { booked: booked } }
