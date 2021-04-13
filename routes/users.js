@@ -256,7 +256,7 @@ router.delete("/removeApplied", verify, (req, res) => {
     });
   }
 
-  User.findOne({ _id: req.user.userId })
+  User.findOne({ email:req.user.email })
   .then((user) => {
     console.log(user)
     if (user.booked.length == 0) {
