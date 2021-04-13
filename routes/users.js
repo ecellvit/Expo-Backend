@@ -1,58 +1,64 @@
 const router = require("express").Router();
 const bcrypt = require("bcryptjs");
 const recaptcha = require("../config/recaptchaVerification");
-const verify = require('./verifyToken');
+const verify = require("./verifyToken");
 const { Auth } = require("two-step-auth");
-const jwt = require('jsonwebtoken');
+const jwt = require("jsonwebtoken");
 
 const User = require("../models/User");
 const Company = require("../models/Company");
 
 // @TODO Add recaptcha middleware
-router.post("/login",recaptcha, (req, res) => {
-
+router.post("/login", recaptcha, (req, res) => {
   //CHECKING IF EMAIL EXISTS
-  User.findOne({email:req.body.email})
-    .then((user)=>{
-      if(!user)
-      {
-          return res.status(400).send('Email or Password Does Not Exist');
+  User.findOne({ email: req.body.email })
+    .then((user) => {
+      if (!user) {
+        return res.status(400).send("Email or Password Does Not Exist");
       }
 
       //CHECKING IF PASSWORD IS CORRECT
-      const validPass = bcrypt.compare(req.body.password,user.password);
+      const validPass = bcrypt.compare(req.body.password, user.password);
 
-      if(!validPass)
-      {
-          return res.status(400).send('Invalid Password or Email');
+      if (!validPass) {
+        return res.status(400).send("Invalid Password or Email");
       }
 
       //CREATE AND ASSIGN A TOKEN
-      const token = jwt.sign({_id: user._id, name: user.name, email: user.email, phoneNo: user.phoneNo, resumeLink: user.resumeLink, booked: user.booked, approvalStatus: user.approvalStatus },process.env.TOKEN_SECRET);
-      res.header('auth-token',token).status(200).json({
-        success:true,
-        message:'authenticated. token in header',
-        token : token
+      const token = jwt.sign(
+        {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          phoneNo: user.phoneNo,
+          resumeLink: user.resumeLink,
+          booked: user.booked,
+          approvalStatus: user.approvalStatus,
+        },
+        process.env.TOKEN_SECRET
+      );
+      res.status(200).json({
+        success: true,
+        message: "Authentication Successful!",
+        token: token,
       });
     })
     .catch((err) => {
       console.log("Error:", err);
-    })
-
-
+    });
 });
 
-router.get("/success", (req, res) => {
-  return res.status(200).json({
-    message: "logged In",
-  });
-});
+// router.get("/success", (req, res) => {
+//   return res.status(200).json({
+//     message: "logged In",
+//   });
+// });
 
-router.get("/failure", (req, res) => {
-  return res.status(400).json({
-    message: "log in denied",
-  });
-});
+// router.get("/failure", (req, res) => {
+//   return res.status(400).json({
+//     message: "log in denied",
+//   });
+// });
 
 router.get("/dashboard", verify, (req, res) => {
   return res.status(400).json({
@@ -61,37 +67,36 @@ router.get("/dashboard", verify, (req, res) => {
 });
 
 router.get("/getAppliedCompanies", verify, (req, res) => {
-  User.findOne({email:req.user.email})
-    .then((user)=>{
+  User.findOne({ email: req.user.email })
+    .then((user) => {
       return res.status(200).json({
         appliedCompanies: user.booked,
       });
     })
     .catch((err) => {
       console.log("Error:", err);
-    })
+    });
 });
 
 router.post("/apply", verify, (req, res) => {
   if (!req.body.companyName || !req.body.companyId || !req.body.slotId) {
     return res.status(400).json({
-      erroMessage: "missing required parameters. refer documentation",
+      errorMessage: "Missing Required Params",
     });
   }
 
-
-  User.findOne({email:req.user.email})
-    .then((user)=>{
+  User.findOne({ email: req.user.email })
+    .then((user) => {
       if (user.booked.length == 2) {
         return res.status(400).json({
-          erroMessage: "cannot apply to more than two",
+          errorMessage: "Cannot Apply in More than 2 Companies!",
         });
       }
 
       for (let i = 0; i < user.booked.length; i++) {
         if (user.booked[i].companyId === req.body.companyId) {
           return res.status(400).json({
-            erroMessage: "cannot apply to same company twice",
+            errorMessage: "cannot apply to same company twice",
           });
         }
       }
@@ -101,7 +106,7 @@ router.post("/apply", verify, (req, res) => {
           .then((company) => {
             if (!company) {
               return res.status(400).json({
-                erroMessage: "company does not exist",
+                errorMessage: "company does not exist",
               });
             } else {
               const slots = company.slots;
@@ -111,7 +116,8 @@ router.post("/apply", verify, (req, res) => {
                   for (let j = 0; j < user.booked.length; j++) {
                     if (user.booked[j].startTime === slots[i].startTime) {
                       return res.status(400).json({
-                        erroMessage: "cannot apply to two compaies as same time",
+                        errorMessage:
+                          "cannot apply to two compaies as same time",
                       });
                     }
                   }
@@ -120,7 +126,7 @@ router.post("/apply", verify, (req, res) => {
                     for (let j = 0; j < slots[i].bookedBy.length; j++) {
                       if (slots[i].bookedBy[j]._id === req.user._id) {
                         return res.status(400).json({
-                          erroMessage: "cannot book twice in same slot",
+                          errorMessage: "cannot book twice in same slot",
                         });
                       }
                     }
@@ -130,7 +136,7 @@ router.post("/apply", verify, (req, res) => {
                     break;
                   } else {
                     return res.status(400).json({
-                      erroMessage: "no slots available",
+                      errorMessage: "no slots available",
                     });
                   }
                 }
@@ -145,7 +151,7 @@ router.post("/apply", verify, (req, res) => {
                     .then((user) => {
                       if (!user) {
                         return res.status(400).json({
-                          erroMessage: "user doesnt exists. please login",
+                          errorMessage: "user doesnt exists. please login",
                         });
                       } else {
                         const booked = user.booked;
@@ -187,15 +193,13 @@ router.post("/apply", verify, (req, res) => {
           });
       } else {
         return res.status(400).json({
-          erroMessage: "approval status false",
+          errorMessage: "approval status false",
         });
       }
     })
     .catch((err) => {
       console.log("Error:", err);
-    })
-
-
+    });
 });
 
 router.get("/getAll", verify, (req, res) => {
@@ -205,7 +209,7 @@ router.get("/getAll", verify, (req, res) => {
     });
   } else {
     return res.status(400).json({
-      erroMessage: "unauthorized access request",
+      errorMessage: "unauthorized access request",
     });
   }
 });
@@ -214,15 +218,15 @@ router.post("/approvalToggle", verify, (req, res) => {
   if (req.user._id.equals(process.env.ADMIN)) {
     if (!req.body.userId) {
       return res.status(400).json({
-        erroMessage: "missing required parameters. refer documentation",
+        errorMessage: "Missing Required Params",
       });
     }
 
-    User.findOne({ email:req.user.email })
+    User.findOne({ email: req.user.email })
       .then((user) => {
         if (!user) {
           return res.status(400).json({
-            erroMessage: "user doesnt exists. please login",
+            errorMessage: "user doesnt exists. please login",
           });
         } else {
           User.updateOne(
@@ -244,7 +248,7 @@ router.post("/approvalToggle", verify, (req, res) => {
       });
   } else {
     return res.status(400).json({
-      erroMessage: "unauthorized access request",
+      errorMessage: "unauthorized access request",
     });
   }
 });
@@ -252,32 +256,32 @@ router.post("/approvalToggle", verify, (req, res) => {
 router.delete("/removeApplied", verify, (req, res) => {
   if (!req.body.companyId || !req.body.slotId) {
     return res.status(400).json({
-      erroMessage: "missing required parameters. refer documentation",
+      errorMessage: "Missing Required Params",
     });
   }
 
-  User.findOne({ email:req.user.email })
-  .then((user) => {
-    if (user.booked.length == 0) {
-      return res.status(400).json({
-        erroMessage: "Nothing to remove",
-      });
-    }
+  User.findOne({ email: req.user.email })
+    .then((user) => {
+      if (user.booked.length == 0) {
+        return res.status(400).json({
+          errorMessage: "Nothing to remove",
+        });
+      }
 
-    if (user.approvalStatus) {
+      // if (user.approvalStatus) {
       Company.findOne({ _id: req.body.companyId })
         .then((company) => {
           if (!company) {
             return res.status(400).json({
-              erroMessage: "company does not exist",
+              errorMessage: "Company doesn't Exists!",
             });
           } else {
             const slots = company.slots;
             for (let i = 0; i < slots.length; i++) {
               if (slots[i]._id.equals(req.body.slotId)) {
                 for (let j = 0; j < slots[i].bookedBy.length; j++) {
-                  console.log(slots[i].bookedBy[j]._id)
-                  console.log(req.user._id)
+                  console.log(slots[i].bookedBy[j]._id);
+                  console.log(req.user._id);
                   if (slots[i].bookedBy[j]._id === req.user._id) {
                     slots[i].bookedBy.splice(j, 1);
                     slots[i].available = slots[i].available + 1;
@@ -296,7 +300,7 @@ router.delete("/removeApplied", verify, (req, res) => {
                   .then((user) => {
                     if (!user) {
                       return res.status(400).json({
-                        erroMessage: "user doesnt exists. please login",
+                        errorMessage: "User doesn't Exists!",
                       });
                     } else {
                       const booked = user.booked;
@@ -312,7 +316,7 @@ router.delete("/removeApplied", verify, (req, res) => {
                       )
                         .then((update) => {
                           res.status(200).json({
-                            message: "removed and updated in db",
+                            message: "Removed!",
                           });
                         })
                         .catch((err) => {
@@ -332,25 +336,23 @@ router.delete("/removeApplied", verify, (req, res) => {
         .catch((err) => {
           console.log("Error:", err);
         });
-    } else {
-      return res.status(400).json({
-        erroMessage: "approval status false",
-      });
-    }
-  })
-  .catch((err) => {
-    console.log("Error:", err);
-  });
-
+      // } else {
+      //   return res.status(400).json({
+      //     errorMessage: "approval status false",
+      //   });
+      // }
+    })
+    .catch((err) => {
+      console.log("Error:", err);
+    });
 });
 
 router.get("/profile", verify, (req, res) => {
-  User.findOne({email: req.user.email})
-    .then((user)=>{
-      if(!user)
-      {
+  User.findOne({ email: req.user.email })
+    .then((user) => {
+      if (!user) {
         return res.status(400).json({
-          Message:"Not a user"
+          Message: "User doesn't Exists!",
         });
       }
       return res.status(200).json({
@@ -363,7 +365,7 @@ router.get("/profile", verify, (req, res) => {
     .catch((err) => {
       console.log("Error:", err);
       return res.status(400).json({
-        Error:err
+        Error: err,
       });
     });
 });
@@ -371,7 +373,7 @@ router.get("/profile", verify, (req, res) => {
 router.patch("/update", verify, (req, res) => {
   if (!req.body.name || !req.body.resumeLink || !req.body.phoneNo) {
     return res.status(400).json({
-      erroMessage: "missing required parameters. refer documentation",
+      errorMessage: "Missing Required Params",
     });
   }
 
@@ -379,7 +381,7 @@ router.patch("/update", verify, (req, res) => {
     .then((user) => {
       if (!user) {
         return res.status(400).json({
-          erroMessage: "user doesnt exists. please login",
+          errorMessage: "User doesn't Exists!",
         });
       } else {
         User.updateOne(
@@ -393,11 +395,11 @@ router.patch("/update", verify, (req, res) => {
           }
         )
           .then((update) => {
-            req.user.resumeLink = req.body.resumeLink
-            req.user.name = req.body.name
-            req.user.phoneNo = req.body.phoneNo
+            req.user.resumeLink = req.body.resumeLink;
+            req.user.name = req.body.name;
+            req.user.phoneNo = req.body.phoneNo;
             res.status(200).json({
-              message: "details updated in db",
+              message: "Details updated Successfully!",
             });
           })
           .catch((err) => {
@@ -420,7 +422,7 @@ let otp = 0;
 
 async function login(emailId) {
   try {
-    const res = await Auth(emailId, "IntenExpo");
+    const res = await Auth(emailId, "Internship Expo by E-Summit VIT");
     otp = res.OTP;
     console.log(res.success);
   } catch (error) {
@@ -437,7 +439,7 @@ router.post("/otpVerify", (req, res) => {
     !req.body.otp
   ) {
     return res.status(400).json({
-      erroMessage: "missing required parameters. refer documentation",
+      errorMessage: "Missing Required Params",
     });
   }
   if (req.body.otp == otp) {
@@ -459,13 +461,13 @@ router.post("/otpVerify", (req, res) => {
     bcrypt.genSalt(10, (err, salt) => {
       if (err) {
         return res.status(400).json({
-          erroMessage: err,
+          errorMessage: err,
         });
       }
       bcrypt.hash(newUser.password, salt, (err, hash) => {
         if (err) {
           return res.status(400).json({
-            erroMessage: err,
+            errorMessage: err,
           });
         }
 
@@ -479,14 +481,14 @@ router.post("/otpVerify", (req, res) => {
           })
           .catch((err) => {
             return res.status(400).json({
-              erroMessage: err,
+              errorMessage: err,
             });
           });
       });
     });
   } else {
     return res.status(400).json({
-      erroMessage: "otp not match",
+      errorMessage: "OTP doesn't match!",
     });
   }
 });
@@ -494,7 +496,7 @@ router.post("/otpVerify", (req, res) => {
 router.post("/register", (req, res) => {
   if (!req.body.email) {
     return res.status(400).json({
-      erroMessage: "missing required parameters. refer documentation",
+      errorMessage: "Missing Required Params",
     });
   }
 
@@ -502,7 +504,7 @@ router.post("/register", (req, res) => {
     .then((user) => {
       if (user) {
         return res.status(400).json({
-          erroMessage: "user already exists. please login",
+          errorMessage: "User Already Exists",
         });
       } else {
         login(req.body.email);

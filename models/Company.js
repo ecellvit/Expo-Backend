@@ -1,50 +1,48 @@
-const mongoose = require('mongoose')
+const mongoose = require("mongoose");
 
-const Schema = mongoose.Schema
+const Schema = mongoose.Schema;
 
 const slotSchema = new Schema({
   startTime: {
     type: String,
-    required: true
+    required: true,
   },
   endTime: {
     type: String,
-    required: true
+    required: true,
   },
   bookedBy: {
-    type: Array
+    type: Array,
   },
   available: {
     type: Number,
-    default: 5
+    default: 5,
   },
   total: {
     type: Number,
-    default: 5
-  }
-
-})
+    default: 5,
+  },
+});
 
 const companySchema = new Schema({
   name: {
     type: String,
-    required: true
+    required: true,
   },
   description: {
     type: String,
-    required: true
+    required: true,
   },
   tags: {
     type: Array,
-    default: []
+    default: [],
   },
   workFrom: {
-    type: String
+    type: String,
   },
-  slots: [slotSchema]
+  slots: [slotSchema],
+});
 
-})
+const Company = mongoose.model("InternExpoCompany", companySchema);
 
-const Company = mongoose.model('InternExpoCompany', companySchema)
-
-module.exports = Company
+module.exports = Company;

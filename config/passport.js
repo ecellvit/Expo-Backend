@@ -17,7 +17,7 @@ module.exports = function (passport) {
           bcrypt.compare(password, user.password, (err, isMatch) => {
             if (err) {
               return res.status(400).json({
-                erroMessage: 'hashing compare error'
+                errorMessage: 'hashing compare error'
               })
             }
             if (isMatch) {
