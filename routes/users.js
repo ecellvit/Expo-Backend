@@ -4,7 +4,6 @@ const recaptcha = require("../config/recaptchaVerification");
 const verify = require("./verifyToken");
 const { Auth } = require("two-step-auth");
 const jwt = require("jsonwebtoken");
-const sendMail = require('./mail');
 
 const User = require("../models/User");
 const Otp = require("../models/Otp");
@@ -451,6 +450,31 @@ async function login(emailId) {
   try {
     const res = await Auth(emailId, "Internship Expo by E-Summit VIT");
     otp = res.OTP;
+    var current = new Date();
+    var hours = current.getHours();
+    var expiryMinutes = current.getMinutes()+10;
+    if(expiryMinutes>60)
+    {
+      hours=hours+1;
+      if(hours == 24)
+      {
+         hours = "00";
+      }
+      expiryMinutes = 60 - expiryMinutes;
+    }
+    var expiryTime = hours.toString()+":"+expiryMinutes.toString();
+    const newOtp = new Otp({
+      otp,
+      expiryTime
+    });    
+    newOtp
+      .save()
+      .then((otp) => {
+        console.log("done")
+      })
+      .catch((err) => {
+        console.log(err)
+      });    
     console.log(res.success);
   } catch (error) {
     console.log(error);
@@ -476,8 +500,29 @@ router.post("/otpVerify", (req, res) => {
           errorMessage: "User Already Exists",
         });
       } else {
-        // if (req.body.otp == otp) {
-          const name = req.body.name;
+        Otp.findOne({otp: req.body.otp})
+          .then((otp)=>{
+            if(!otp)
+            {
+              return res.status(400).json({
+                errorMessage: "OTP does not exist",
+              });
+            }
+            else
+            {
+              var current = new Date();
+              var hours = current.getHours();
+              var expiryMinutes = current.getMinutes();
+              var expiryTime = hours.toString()+":"+expiryMinutes.toString();
+              if(expiryTime.localeCompare(otp.expiryTime) > 0)
+              {
+                return res.status(400).json({
+                  errorMessage: "OTP expired",
+                });
+              }
+              else
+              {
+                const name = req.body.name;
           const email = req.body.email;
           const phoneNo = req.body.phoneNo;
           const password = req.body.password;
@@ -518,11 +563,13 @@ router.post("/otpVerify", (req, res) => {
                 });
             });
           });
-        // } else {
-        //   return res.status(400).json({
-        //     errorMessage: "OTP doesn't match!",
-        //   });
-        // }
+              }
+
+            }
+          })
+          .catch((err) => {
+            console.log("Error:", err);
+          });
       }
     })
     .catch((err) => {
@@ -544,26 +591,6 @@ router.post("/register", (req, res) => {
           errorMessage: "User Already Exists",
         });
       } else {
-        var current = new Date();
-        var hours = current.getHours();
-        var expiryMinutes = current.getMinutes()+10;
-        if(expiryMinutes>60)
-        {
-          hours=hours+1;
-          if(hours == 24)
-          {
-             hours = "00";
-          }
-          expiryMinutes = 60 - expiryMinutes;
-        }
-        var expiryTime = hours.toString()+expiryMinutes.toString();
-        var otp = Math.floor(100000 + Math.random() * 900000);
-        var body = "Your OTP:"+otp+" expires at "+expiryTime;
-        var sender_email = "helloecellvit@gmail.com";
-        var receiver_email = req.body.email;
-        var email_subject = "Internship Expo OTP";
-        var email_body = body;
-        //sendMail(sender_email, receiver_email,email_subject, email_body);
         login(req.body.email);
         return res.status(200).json({
           otpSentStatus: "success",
