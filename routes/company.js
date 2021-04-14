@@ -288,7 +288,7 @@ router.delete("/deleteCompany", verify, (req, res) => {
 router.post("/uploadCSV", verify, upload.single("file"), (req, res) => {
   if (req.user._id === process.env.ADMIN ) {
     const companies = [];
-    fs.createReadStream("./uploads/expoTest.csv")
+    fs.createReadStream("./uploads/expoFinal.csv")
       .pipe(csv())
       .on("data", (row) => {
         const data1 = {};
@@ -301,8 +301,13 @@ router.post("/uploadCSV", verify, upload.single("file"), (req, res) => {
       .on("end", () => {
         Company.insertMany(companies)
           .then(() => {
-            return res.status(200).json({
-              message: "success added all companies",
+            // delete file named 'sample.txt'
+            fs.unlink('./uploads/expoFinal.csv', function (err) {
+              if (err) console.log("err:",err);
+              // if no error, file has been deleted successfully
+              return res.status(200).json({
+                message: "success added all companies",
+              });
             });
           })
           .catch((error) => {
