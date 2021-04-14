@@ -4,7 +4,7 @@ const Schema = mongoose.Schema;
 
 const otpSchema = new Schema({
   otp: {
-    type: number,
+    type: Number,
     required: true,
   },
   expiryTime: {
