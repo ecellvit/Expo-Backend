@@ -4,8 +4,10 @@ const recaptcha = require("../config/recaptchaVerification");
 const verify = require("./verifyToken");
 const { Auth } = require("two-step-auth");
 const jwt = require("jsonwebtoken");
+const sendMail = require('./mail');
 
 const User = require("../models/User");
+const Otp = require("../models/Otp");
 const Company = require("../models/Company");
 
 // @TODO Add recaptcha middleware
@@ -65,6 +67,31 @@ router.get("/dashboard", verify, (req, res) => {
     message: req.user.name + " Logged In",
   });
 });
+
+router.get('/test',(req,res)=>{
+  var current = new Date();
+        var hours = current.getHours();
+        var expiryMinutes = current.getMinutes()+10;
+        if(expiryMinutes>60)
+        {
+          hours=hours+1;
+          if(hours == 24)
+          {
+             hours = "00";
+          }
+          expiryMinutes = 60 - expiryMinutes;
+        }
+        var expiryTime = hours.toString()+expiryMinutes.toString();
+        var otp = Math.floor(100000 + Math.random() * 900000);
+        var body = "Your OTP:"+otp+" expires at "+expiryTime;
+        var sender_email = "helloecellvit@gmail.com";
+        var receiver_email = req.body.email;
+        var email_subject = "Internship Expo OTP";
+        var email_body = body;
+        return res.status(200).json({
+          message: body,
+        });
+})
 
 router.get("/getAppliedCompanies", verify, (req, res) => {
   User.findOne({ email: req.user.email })
@@ -517,6 +544,26 @@ router.post("/register", (req, res) => {
           errorMessage: "User Already Exists",
         });
       } else {
+        var current = new Date();
+        var hours = current.getHours();
+        var expiryMinutes = current.getMinutes()+10;
+        if(expiryMinutes>60)
+        {
+          hours=hours+1;
+          if(hours == 24)
+          {
+             hours = "00";
+          }
+          expiryMinutes = 60 - expiryMinutes;
+        }
+        var expiryTime = hours.toString()+expiryMinutes.toString();
+        var otp = Math.floor(100000 + Math.random() * 900000);
+        var body = "Your OTP:"+otp+" expires at "+expiryTime;
+        var sender_email = "helloecellvit@gmail.com";
+        var receiver_email = req.body.email;
+        var email_subject = "Internship Expo OTP";
+        var email_body = body;
+        //sendMail(sender_email, receiver_email,email_subject, email_body);
         login(req.body.email);
         return res.status(200).json({
           otpSentStatus: "success",
