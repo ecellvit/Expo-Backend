@@ -286,7 +286,7 @@ router.delete("/deleteCompany", verify, (req, res) => {
 });
 
 router.post("/uploadCSV", verify, upload.single("file"), (req, res) => {
-  if (req.user._id.equals(process.env.ADMIN)) {
+  if (req.user._id === process.env.ADMIN ) {
     const companies = [];
     fs.createReadStream("./uploads/expoTest.csv")
       .pipe(csv())
