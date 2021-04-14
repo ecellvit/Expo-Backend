@@ -22,7 +22,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 router.post("/add", verify, (req, res) => {
-  if (req.user._id.equals(process.env.ADMIN)) {
+  if (req.user._id === process.env.ADMIN ) {
     if (
       !req.body.name ||
       !req.body.description ||
@@ -114,7 +114,7 @@ router.post("/getData", verify, (req, res) => {
 });
 
 router.post("/addSlot", verify, (req, res) => {
-  if (req.user._id.equals(process.env.ADMIN)) {
+  if (req.user._id === process.env.ADMIN ) {
     if (!req.body.name || !req.body.startTime || !req.body.endTime) {
       return res.status(400).json({
         errorMessage: "Missing Required Params",
@@ -162,7 +162,7 @@ router.post("/addSlot", verify, (req, res) => {
 });
 
 router.patch("/updateSlot", verify, (req, res) => {
-  if (req.user._id.equals(process.env.ADMIN)) {
+  if (req.user._id === process.env.ADMIN) {
     if (
       !req.body.name ||
       !req.body.id ||
@@ -218,7 +218,7 @@ router.patch("/updateSlot", verify, (req, res) => {
 });
 
 router.delete("/deleteSlot", verify, (req, res) => {
-  if (req.user._id.equals(process.env.ADMIN)) {
+  if (req.user._id === process.env.ADMIN) {
     if (!req.body.name || !req.body.id) {
       return res.status(400).json({
         errorMessage: "Missing Required Params",
@@ -262,7 +262,7 @@ router.delete("/deleteSlot", verify, (req, res) => {
 });
 
 router.delete("/deleteCompany", verify, (req, res) => {
-  if (req.user._id.equals(process.env.ADMIN)) {
+  if (req.user._id === process.env.ADMIN) {
     if (!req.body.name) {
       return res.status(400).json({
         message: "Missing Required Params",
