@@ -476,7 +476,7 @@ router.post("/otpVerify", (req, res) => {
           errorMessage: "User Already Exists",
         });
       } else {
-        if (req.body.otp == otp) {
+        // if (req.body.otp == otp) {
           const name = req.body.name;
           const email = req.body.email;
           const phoneNo = req.body.phoneNo;
@@ -518,11 +518,11 @@ router.post("/otpVerify", (req, res) => {
                 });
             });
           });
-        } else {
-          return res.status(400).json({
-            errorMessage: "OTP doesn't match!",
-          });
-        }
+        // } else {
+        //   return res.status(400).json({
+        //     errorMessage: "OTP doesn't match!",
+        //   });
+        // }
       }
     })
     .catch((err) => {
