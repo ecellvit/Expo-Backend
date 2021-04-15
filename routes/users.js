@@ -438,7 +438,7 @@ router.post('/forgotPassword', (req, res) => {
           errorMessage: 'User Doesnt Exists'
         })
       } else {
-        login(req.body.email)
+        login(req.body.email,"forgotPassword")
         return res.status(200).json({
           otpSentStatus: 'success',
           message: 'call updatePassowrd otp verification endpoint'
@@ -466,10 +466,16 @@ router.patch('/updatePassword', (req, res) => {
       } else {
         const current = new Date()
         const hours = current.getHours()
-        const expiryMinutes = current.getMinutes().toString()
+        var expiryMinutes = current.getMinutes().toString()
         if(expiryMinutes.length == 1)
           expiryMinutes = "0"+expiryMinutes;
         const expiryTime = hours.toString() + ':' + expiryMinutes.toString()
+        if(otp.email !== req.body.email || otp.requirement !== "forgotPassword")
+        {
+          return res.status(400).json({
+            errorMessage: 'OTP Not Valid'
+          })
+        }
         if (expiryTime.localeCompare(otp.expiryTime) > 0) {
           return res.status(400).json({
             errorMessage: 'OTP expired'
@@ -535,7 +541,7 @@ router.get('/logout', (req, res) => {
 
 let otp = 0
 
-async function login (emailId) {
+async function login (emailId,requirement) {
   try {
     const res = await Auth(emailId, 'Internship Expo by E-Summit VIT')
     otp = res.OTP
@@ -550,10 +556,13 @@ async function login (emailId) {
       }
       expiryMinutes = 60 - expiryMinutes
     }
+    var email = emailId
     const expiryTime = hours.toString() + ':' + expiryMinutes.toString()
     const newOtp = new Otp({
       otp,
-      expiryTime
+      email,
+      expiryTime,
+      requirement
     })
     newOtp
       .save()
@@ -597,14 +606,17 @@ router.post('/otpVerify', (req, res) => {
             } else {
               const current = new Date()
               const hours = current.getHours()
-              const expiryMinutes = current.getMinutes().toString()
+              var expiryMinutes = current.getMinutes().toString()
               if(expiryMinutes.length == 1)
                 expiryMinutes = "0"+expiryMinutes;
               console.log(expiryMinutes.toString())
               const expiryTime = hours.toString() + ':' + expiryMinutes.toString()
-              console.log(expiryTime)
-              console.log(otp.expiryTime)
-              console.log(expiryTime.localeCompare(otp.expiryTime))
+              if(otp.email !== req.body.email || otp.requirement !== "registration")
+              {
+                return res.status(400).json({
+                  errorMessage: 'OTP Not Valid'
+                })
+              }
               if (expiryTime.localeCompare(otp.expiryTime) > 0) {
                 return res.status(400).json({
                   errorMessage: 'OTP expired'
@@ -678,7 +690,7 @@ router.post('/register', (req, res) => {
           errorMessage: 'User Already Exists'
         })
       } else {
-        login(req.body.email)
+        login(req.body.email,"registration")
         return res.status(200).json({
           otpSentStatus: 'success',
           message: 'call otp verification endpoint'
