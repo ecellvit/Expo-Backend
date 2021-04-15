@@ -512,7 +512,7 @@ router.patch('/updatePassword', (req, res) => {
                     )
                       .then((update) => {
 
-                        Otp.deleteOne({id: otp._id})
+                        Otp.deleteOne({_id: otp._id})
                           .then(()=>{
                             res.status(200).json({
                               message: 'Details updated Successfully!'
@@ -561,7 +561,7 @@ async function login (emailId,requirement) {
       if (hours == 24) {
         hours = '00'
       }
-      expiryMinutes = 60 - expiryMinutes
+      expiryMinutes = expiryMinutes - 60
     }
     var email = emailId
     const expiryTime = hours.toString() + ':' + expiryMinutes.toString()
@@ -660,7 +660,7 @@ router.post('/otpVerify', (req, res) => {
                       .save()
                       .then((user) => {
 
-                        Otp.deleteOne({id: otp._id})
+                        Otp.deleteOne({_id: otp._id})
                           .then(()=>{
                             return res.status(200).json({
                               message: 'success'
