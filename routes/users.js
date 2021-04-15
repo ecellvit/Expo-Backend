@@ -511,9 +511,16 @@ router.patch('/updatePassword', (req, res) => {
                       }
                     )
                       .then((update) => {
-                        res.status(200).json({
-                          message: 'Details updated Successfully!'
-                        })
+
+                        Otp.deleteOne({id: otp._id})
+                          .then(()=>{
+                            res.status(200).json({
+                              message: 'Details updated Successfully!'
+                            })
+                          })
+                          .catch((err) => {
+                            console.log('Error:', err)
+                          })
                       })
                       .catch((err) => {
                         console.log('Error:', err)
@@ -652,9 +659,18 @@ router.post('/otpVerify', (req, res) => {
                     newUser
                       .save()
                       .then((user) => {
-                        return res.status(200).json({
-                          message: 'success'
-                        })
+
+                        Otp.deleteOne({id: otp._id})
+                          .then(()=>{
+                            return res.status(200).json({
+                              message: 'success'
+                            })
+                          })
+                          .catch((err) => {
+                            return res.status(400).json({
+                              errorMessage: err
+                            })
+                          })
                       })
                       .catch((err) => {
                         return res.status(400).json({
