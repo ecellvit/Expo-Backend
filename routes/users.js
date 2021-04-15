@@ -70,21 +70,9 @@ router.get('/dashboard', verify, (req, res) => {
 router.get('/test', (req, res) => {
   const current = new Date()
   let hours = current.getHours()
-  let expiryMinutes = current.getMinutes() + 10
-  if (expiryMinutes > 60) {
-    hours = hours + 1
-    if (hours == 24) {
-      hours = '00'
-    }
-    expiryMinutes = 60 - expiryMinutes
-  }
-  const expiryTime = hours.toString() + expiryMinutes.toString()
-  const otp = Math.floor(100000 + Math.random() * 900000)
-  const body = 'Your OTP:' + otp + ' expires at ' + expiryTime
-  const sender_email = 'helloecellvit@gmail.com'
-  const receiver_email = req.body.email
-  const email_subject = 'Internship Expo OTP'
-  const email_body = body
+  body = current.getMinutes().toString()
+  if(body.length == 1)
+    body="0"+body
   return res.status(200).json({
     message: body
   })
@@ -478,7 +466,9 @@ router.patch('/updatePassword', (req, res) => {
       } else {
         const current = new Date()
         const hours = current.getHours()
-        const expiryMinutes = current.getMinutes()
+        const expiryMinutes = current.getMinutes().toString()
+        if(expiryMinutes.length == 1)
+          expiryMinutes = "0"+expiryMinutes;
         const expiryTime = hours.toString() + ':' + expiryMinutes.toString()
         if (expiryTime.localeCompare(otp.expiryTime) > 0) {
           return res.status(400).json({
@@ -608,6 +598,8 @@ router.post('/otpVerify', (req, res) => {
               const current = new Date()
               const hours = current.getHours()
               const expiryMinutes = current.getMinutes().toString()
+              if(expiryMinutes.length == 1)
+                expiryMinutes = "0"+expiryMinutes;
               console.log(expiryMinutes.toString())
               const expiryTime = hours.toString() + ':' + expiryMinutes.toString()
               console.log(expiryTime)
