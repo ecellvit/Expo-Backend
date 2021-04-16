@@ -7,6 +7,7 @@ const jwt = require('jsonwebtoken')
 
 const User = require('../models/User')
 const Otp = require('../models/Otp')
+const Spam = require('../models/Spam')
 const Company = require('../models/Company')
 
 // @TODO Add recaptcha middleware
@@ -662,9 +663,17 @@ router.post('/otpVerify', (req, res) => {
 
                         Otp.deleteOne({_id: otp._id})
                           .then(()=>{
-                            return res.status(200).json({
-                              message: 'success'
-                            })
+                            Spam.deleteOne({email:req.body.email})
+                              .then(()=>{
+                                return res.status(200).json({
+                                  message: 'success'
+                                })
+                              })
+                              .catch((err) => {
+                                return res.status(400).json({
+                                  errorMessage: err
+                                })
+                              })
                           })
                           .catch((err) => {
                             return res.status(400).json({
@@ -706,11 +715,104 @@ router.post('/register', (req, res) => {
           errorMessage: 'User Already Exists'
         })
       } else {
-        login(req.body.email,"registration")
-        return res.status(200).json({
-          otpSentStatus: 'success',
-          message: 'call otp verification endpoint'
-        })
+
+        Spam.findOne({email: req.body.email})
+          .then((spam)=>{
+            if(!spam)
+            {
+                let email = req.body.email
+                let count = 1
+                const newSpam = new Spam({
+                  email,
+                  count
+                })
+                newSpam.save()
+                  .then((save)=>{
+                    login(req.body.email,"registration")
+                    return res.status(200).json({
+                      otpSentStatus: 'success',
+                      message: 'call otp verification endpoint'
+                    })
+                  })
+                  .catch((err) => {
+                    console.log('Error:', err)
+                  })
+            }
+            else
+            {
+              const current = new Date()
+              const hours = current.getHours()
+              var expiryMinutes = current.getMinutes().toString()
+              if(expiryMinutes.length == 1)
+                expiryMinutes = "0"+expiryMinutes;
+              console.log(expiryMinutes.toString())
+              const expiryTime = hours.toString() + ':' + expiryMinutes.toString()
+              if(spam.blocked && (expiryTime.localeCompare(spam.expiryTime) < 0))
+              {
+                return res.status(400).json({
+                  message: 'User blocked due to multiple attemps. Please wait 10 mins since block'
+                })
+              }
+              else if(spam.count !== 5)
+              {
+                let count = spam.count + 1
+                Spam.updateOne({email: req.body.email},{$set:{count:count}})
+                  .then((update)=>{
+                    login(req.body.email,"registration")
+                    return res.status(200).json({
+                      otpSentStatus: 'success',
+                      message: 'call otp verification endpoint'
+                    })
+                  })
+                  .catch((err) => {
+                    console.log('Error:', err)
+                  })
+              }
+              else if(spam.blocked && (expiryTime.localeCompare(spam.expiryTime) > 0))
+              {
+                Spam.deleteOne({email:req.body.email})
+                  .then(()=>{
+                    login(req.body.email,"registration")
+                    return res.status(200).json({
+                      otpSentStatus: 'success',
+                      message: 'call otp verification endpoint'
+                    })
+                  })
+                  .catch((err) => {
+                    console.log('Error:', err)
+                  })
+              }
+              else
+              {
+                  var current1 = new Date()
+                  let hours1 = current1.getHours()
+                  console.log(current1.getMinutes().toString())
+                  let expiryMinutes1 = current1.getMinutes() + 10
+                  if (expiryMinutes > 60) {
+                    hours1 = hours1 + 1
+                    if (hours1 == 24) {
+                      hours1 = '00'
+                    }
+                    expiryMinutes1 = expiryMinutes1 - 60
+                  }
+                  const expiryTime1 = hours1.toString() + ':' + expiryMinutes1.toString()
+                  
+                  Spam.updateOne({email: req.body.email},{$set:{count:5, blocked: true, expiryTime:expiryTime1}})
+                  .then((update)=>{
+                    return res.status(400).json({
+                      message: 'Blocked till '+expiryTime1+' due to multiple attempts'
+                    })
+                  })
+                  .catch((err) => {
+                    console.log('Error:', err)
+                  })
+
+              }
+            }
+          })
+          .catch((err) => {
+            console.log('Error:', err)
+          })
       }
     })
     .catch((err) => {
