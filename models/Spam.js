@@ -7,11 +7,11 @@ const spamSchema = new Schema({
     type: String,
     required: true
   },
-  blocked:{
-      type: Boolean,
-      default:false
+  blocked: {
+    type: Boolean,
+    default: false
   },
-  count:{
+  count: {
     type: Number,
     required: true
   },
