@@ -383,7 +383,7 @@ router.get('/profile', verify, (req, res) => {
 })
 
 router.patch('/update', verify, (req, res) => {
-  if (!req.body.name || !req.body.resumeLink || !req.body.phoneNo) {
+  if (!req.body.name || !req.body.phoneNo) {
     return res.status(400).json({
       errorMessage: 'Missing Required Params'
     })
@@ -401,7 +401,6 @@ router.patch('/update', verify, (req, res) => {
           {
             $set: {
               name: req.body.name,
-              resumeLink: req.body.resumeLink,
               phoneNo: req.body.phoneNo
             }
           }
