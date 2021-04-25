@@ -40,6 +40,13 @@ const companySchema = new Schema({
   workFrom: {
     type: String
   },
+  websiteLink: {
+    type:String,
+  },
+  logoLink:
+  {
+    type:String,
+  },
   slots: [slotSchema]
 })
 

@@ -113,7 +113,7 @@ router.post('/getData', verify, (req, res) => {
     })
 })
 
-router.post('/addSlot', verify, (req, res) => {
+router.post('/addSlot',verify, (req, res) => {
   if (req.user._id === process.env.ADMIN) {
     if (!req.body.name || !req.body.startTime || !req.body.endTime) {
       return res.status(400).json({
@@ -136,14 +136,14 @@ router.post('/addSlot', verify, (req, res) => {
             bookedBy: [],
             available: req.body.total,
             total: req.body.total
-          }
+          } 
 
           slots.push(slotData)
 
           Company.updateOne({ name: req.body.name }, { $set: { slots: slots } })
             .then((update) => {
               res.status(200).json({
-                message: 'details updated in db'
+                message: 'details updated in db'  
               })
             })
             .catch((err) => {
@@ -292,10 +292,64 @@ router.post('/uploadCSV', verify, upload.single('file'), (req, res) => {
       .pipe(csv())
       .on('data', (row) => {
         const data1 = {}
+        const slot1 = {
+          startTime: "10:00",
+          endTime: "11:00",
+          bookedBy: [],
+          available: 5,
+          total: 5
+        } 
+        const slot2 = {
+          startTime: "11:00",
+          endTime: "12:00",
+          bookedBy: [],
+          available: 5,
+          total: 5
+        } 
+        const slot3 = {
+          startTime: "12:00",
+          endTime: "13:00",
+          bookedBy: [],
+          available: 5,
+          total: 5
+        } 
+        const slot4 = {
+          startTime: "14:00",
+          endTime: "15:00",
+          bookedBy: [],
+          available: 5,
+          total: 5
+        } 
+        const slot5 = {
+          startTime: "15:00",
+          endTime: "16:00",
+          bookedBy: [],
+          available: 5,
+          total: 5
+        } 
+        const slot6 = {
+          startTime: "16:00",
+          endTime: "17:00",
+          bookedBy: [],
+          available: 5,
+          total: 5
+        } 
+        const slot7 = {
+          startTime: "17:00",
+          endTime: "18:00",
+          bookedBy: [],
+          available: 5,
+          total: 5
+        } 
+        var slots = [slot1,slot2,slot3,slot4,slot5,slot6,slot7];
+
         data1.name = row.name
         data1.description = row.description
         data1.tags = row.tags.split(',')
         data1.workFrom = row.workFrom
+        data1.websiteLink = row.websiteLink;
+        data1.logoLink = row.logoLink;
+        data1.slots = slots;
         companies.push(data1)
       })
       .on('end', () => {
