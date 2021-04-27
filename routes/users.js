@@ -382,11 +382,11 @@ router.get("/profile", verify, (req, res) => {
 });
 
 router.patch("/update", verify, (req, res) => {
-  if (!req.body.name || !req.body.phoneNo) {
-    return res.status(400).json({
-      errorMessage: "Missing Required Params",
-    });
-  }
+  // if (!req.body.name || !req.body.phoneNo) {
+  //   return res.status(400).json({
+  //     errorMessage: "Missing Required Params",
+  //   });
+  // }
 
   User.findOne({ email: req.user.email })
     .then((user) => {
