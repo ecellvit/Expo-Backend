@@ -398,10 +398,7 @@ router.patch("/update", verify, (req, res) => {
         User.updateOne(
           { email: req.user.email },
           {
-            $set: {
-              name: req.body.name,
-              phoneNo: req.body.phoneNo,
-            },
+            $set: req.body,
           }
         )
           .then((update) => {
