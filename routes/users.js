@@ -15,14 +15,14 @@ router.post("/login", recaptcha, (req, res) => {
   User.findOne({ email: req.body.email })
     .then((user) => {
       if (!user) {
-        return res.status(400).send("Email or Password Does Not Exist");
+        return res.status(400).json({ errorMessage: "Email Does Not Exist" });
       }
 
       // CHECKING IF PASSWORD IS CORRECT
       const validPass = bcrypt.compare(req.body.password, user.password);
 
       if (!validPass) {
-        return res.status(400).send("Invalid Password or Email");
+        return res.status(400).json({ errorMessage: "Invalid Credentials" });
       }
 
       // CREATE AND ASSIGN A TOKEN
@@ -46,6 +46,9 @@ router.post("/login", recaptcha, (req, res) => {
     })
     .catch((err) => {
       console.log("Error:", err);
+      res.status(400).json({
+        errorText: "Captcha validation Failed!",
+      });
     });
 });
 
