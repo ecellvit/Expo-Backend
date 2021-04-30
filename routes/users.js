@@ -561,18 +561,24 @@ async function login(emailId, requirement) {
       }
       expiryMinutes = expiryMinutes - 60;
     }
-    var email = emailId;
-    const expiryTime = hours.toString() + ":" + expiryMinutes.toString();
-    const newOtp = new Otp({
-      otp,
-      email,
-      expiryTime,
-      requirement,
-    });
-    newOtp
-      .save()
-      .then((otp) => {
-        console.log("done");
+    Otp.deleteMany({ email: emailId })
+      .then(() => {
+        var email = emailId;
+        const expiryTime = hours.toString() + ":" + expiryMinutes.toString();
+        const newOtp = new Otp({
+          otp,
+          email,
+          expiryTime,
+          requirement,
+        });
+        newOtp
+          .save()
+          .then((otp) => {
+            console.log("done");
+          })
+          .catch((err) => {
+            console.log(err);
+          });
       })
       .catch((err) => {
         console.log(err);
